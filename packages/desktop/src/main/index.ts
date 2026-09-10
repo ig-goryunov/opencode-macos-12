@@ -49,6 +49,14 @@ import { migrate } from "./migrate"
 import { cleanupStoreFiles } from "./store-cleanup"
 import { startBackgroundCli } from "./background-cli"
 import { setNativeTranslations } from "./native-translations"
+import { isApplyUpdateRequest, runApplyUpdate } from "./apply-update"
+
+// Custom installer mode: replaces this .app bundle from a downloaded update zip
+// and relaunches. Runs before the app window is created.
+if (isApplyUpdateRequest()) {
+  await runApplyUpdate()
+  process.exit(0)
+}
 
 const APP_NAMES: Record<string, string> = {
   dev: "OpenCode Dev",

@@ -1,5 +1,6 @@
 import { app, dialog } from "electron"
 import pkg from "electron-updater"
+import { getPendingUpdateZip, spawnApplyUpdate } from "./apply-update"
 import { UPDATER_ENABLED } from "./constants"
 import { createUpdaterController, type UpdaterReadyRecord } from "./updater-controller"
 import { getLogger } from "./logging"
@@ -37,6 +38,15 @@ export function setupAutoUpdater(stop: () => Promise<void>) {
         // flag the quit first to keep window ids persisted for restore.
         setAppQuitting()
         try {
+          if (process.platform === "darwin") {
+            // Squirrel.Mac cannot install unsigned builds, so swap the app
+            // bundle ourselves from the cached update zip.
+            const zipPath = getPendingUpdateZip(app.getPath("cache" as any))
+            if (!zipPath) throw new Error("Downloaded update not found")
+            spawnApplyUpdate(zipPath)
+            app.exit(0)
+            return
+          }
           autoUpdater.quitAndInstall()
         } catch (error) {
           // The install failed and the app keeps running; clear the flag so
