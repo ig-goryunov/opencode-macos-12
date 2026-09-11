@@ -2,6 +2,7 @@ import { onMount, splitProps, type ComponentProps } from "solid-js"
 
 const icons = {
   "align-right": `<path d="M12.292 6.04167L16.2503 9.99998L12.292 13.9583M2.91699 9.99998H15.6253M17.0837 3.75V16.25" stroke="currentColor" stroke-linecap="square"/>`,
+  globe: `<path d="M10 2.08325C5.62742 2.08325 2.08325 5.62742 2.08325 9.99992C2.08325 14.3724 5.62742 17.9166 10 17.9166C14.3726 17.9166 17.9166 14.3724 17.9166 9.99992C17.9166 5.62742 14.3726 2.08325 10 2.08325Z" stroke="currentColor" stroke-linecap="square"/><path d="M2.08325 10H17.9166" stroke="currentColor" stroke-linecap="square"/><path d="M10 2.08325C8.125 3.74992 8.125 16.2499 10 17.9166C11.875 16.2499 11.875 3.74992 10 2.08325Z" stroke="currentColor" stroke-linecap="square"/>`,
   "arrow-up": `<path fill-rule="evenodd" clip-rule="evenodd" d="M9.99991 2.24121L16.0921 8.33343L15.2083 9.21731L10.6249 4.63397V17.5001H9.37492V4.63398L4.7916 9.21731L3.90771 8.33343L9.99991 2.24121Z" fill="currentColor"/>`,
   "arrow-left": `<path d="M8.33464 4.58398L2.91797 10.0007L8.33464 15.4173M3.33464 10.0007H17.0846" stroke="currentColor" stroke-linecap="square"/>`,
   "arrow-right": `<path d="M11.6654 4.58398L17.082 10.0007L11.6654 15.4173M16.6654 10.0007H2.91536" stroke="currentColor" stroke-linecap="square"/>`,

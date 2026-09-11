@@ -565,6 +565,20 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
       keybind: "mod+shift+r",
       onSelect: () => view().reviewPanel.toggle(),
     }),
+    viewCommand({
+      id: "browser.toggle",
+      title: language.t("command.browser.toggle"),
+      keybind: "mod+shift+b",
+      slash: "browser",
+      onSelect: () => {
+        if (tabs().active() === "browser") {
+          tabs().close("browser")
+          return
+        }
+        view().reviewPanel.open()
+        tabs().open("browser")
+      },
+    }),
     ...(shown()
       ? [
           viewCommand({

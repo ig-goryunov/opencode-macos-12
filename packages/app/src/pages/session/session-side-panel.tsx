@@ -56,6 +56,7 @@ import {
 import { setSessionHandoff } from "@/pages/session/handoff"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { SessionFileBrowserTab, type SessionFileBrowserState } from "@/pages/session/v2/session-file-browser-tab"
+import { SessionBrowserTab } from "@/pages/session/browser-tab"
 
 type ReviewDiff = FileDiffInfo | SnapshotFileDiff | VcsFileDiff
 type RenderDiff = FileDiffInfo | (SnapshotFileDiff & { file: string }) | VcsFileDiff
@@ -182,6 +183,7 @@ export function SessionSidePanel(props: {
     fileBrowser: () => !!props.fileBrowserState,
   })
   const contextOpen = tabState.contextOpen
+  const browserOpen = tabState.browserOpen
   const openFileOpen = tabState.openFileOpen
   const panelTabs = tabState.panelTabs
   const openedTabs = tabState.openedTabs
@@ -238,9 +240,12 @@ export function SessionSidePanel(props: {
   })
   const fileBrowserVisible = createMemo(() => {
     const active = activeTab()
-    return active !== "review" && active !== "context" && active !== "empty"
+    return active !== "review" && active !== "context" && active !== "empty" && active !== "browser"
   })
+  const browserMounted = browserOpen
+  const browserVisible = createMemo(() => activeTab() === "browser")
   const openFileKeybind = createMemo(() => command.keybindParts("file.open"))
+  const browserKeybind = createMemo(() => command.keybindParts("browser.toggle"))
   const closeTabKeybind = createMemo(() => command.keybindParts("tab.close"))
   const [store, setStore] = createStore({
     activeDraggable: undefined as string | undefined,
@@ -391,6 +396,34 @@ export function SessionSidePanel(props: {
                                   </div>
                                 </Tabs.Trigger>
                               </Show>
+                              <Show when={browserOpen()}>
+                                <Tabs.Trigger
+                                  value="browser"
+                                  closeButton={
+                                    <TooltipKeybind
+                                      title={language.t("common.closeTab")}
+                                      keybind={command.keybind("tab.close")}
+                                      placement="bottom"
+                                      gutter={10}
+                                    >
+                                      <IconButton
+                                        icon="close-small"
+                                        variant="ghost"
+                                        class="h-5 w-5"
+                                        onClick={() => tabs().close("browser")}
+                                        aria-label={language.t("common.closeTab")}
+                                      />
+                                    </TooltipKeybind>
+                                  }
+                                  hideCloseButton
+                                  onMiddleClick={() => tabs().close("browser")}
+                                >
+                                  <div class="flex items-center gap-1.5">
+                                    <Icon name="globe" size="small" />
+                                    <div>{language.t("session.tab.browser")}</div>
+                                  </div>
+                                </Tabs.Trigger>
+                              </Show>
                               <SortableProvider ids={openedTabs()}>
                                 <For each={panelTabs()}>
                                   {(tab) => (
@@ -442,6 +475,23 @@ export function SessionSidePanel(props: {
                                   "bg-background-stronger": !settings.general.newLayoutDesigns(),
                                 }}
                               >
+                                <TooltipKeybind
+                                  title={language.t("command.browser.toggle")}
+                                  keybind={command.keybind("browser.toggle")}
+                                  class="flex items-center"
+                                >
+                                  <IconButton
+                                    icon="globe"
+                                    variant="ghost"
+                                    iconSize="large"
+                                    class="!rounded-md"
+                                    onClick={() => {
+                                      openReviewPanel()
+                                      tabs().open("browser")
+                                    }}
+                                    aria-label={language.t("command.browser.toggle")}
+                                  />
+                                </TooltipKeybind>
                                 <TooltipKeybind
                                   title={language.t("command.file.open")}
                                   keybind={command.keybind("file.open")}
@@ -496,6 +546,18 @@ export function SessionSidePanel(props: {
                                 <SessionContextTab />
                               </div>
                             </Tabs.Content>
+                          </Show>
+
+                          <Show when={browserMounted()}>
+                            <div
+                              role="tabpanel"
+                              data-slot="tabs-content"
+                              class="h-full min-h-0 overflow-hidden"
+                              classList={{ hidden: !browserVisible() }}
+                              inert={!browserVisible() || undefined}
+                            >
+                              <SessionBrowserTab />
+                            </div>
                           </Show>
 
                           <Show when={activeFileTab()} keyed>
@@ -605,6 +667,40 @@ export function SessionSidePanel(props: {
                                 </div>
                               </Tabs.Trigger>
                             </Show>
+                            <Show when={browserOpen()}>
+                              <Tabs.Trigger
+                                value="browser"
+                                closeButton={
+                                  <TooltipV2
+                                    value={
+                                      <>
+                                        {language.t("common.closeTab")}
+                                        <Show when={closeTabKeybind().length > 0}>
+                                          <KeybindV2 keys={closeTabKeybind()} variant="neutral" />
+                                        </Show>
+                                      </>
+                                    }
+                                    placement="bottom"
+                                    gutter={10}
+                                  >
+                                    <IconButton
+                                      icon="close-small"
+                                      variant="ghost"
+                                      class="h-5 w-5"
+                                      onClick={() => tabs().close("browser")}
+                                      aria-label={language.t("common.closeTab")}
+                                    />
+                                  </TooltipV2>
+                                }
+                                hideCloseButton
+                                onMiddleClick={() => tabs().close("browser")}
+                              >
+                                <div class="flex items-center gap-1.5">
+                                  <Icon name="globe" size="small" />
+                                  <div>{language.t("session.tab.browser")}</div>
+                                </div>
+                              </Tabs.Trigger>
+                            </Show>
                             <For each={panelTabs()}>
                               {(tab) => (
                                 <Show
@@ -661,6 +757,29 @@ export function SessionSidePanel(props: {
                                 "bg-background-stronger": !settings.general.newLayoutDesigns(),
                               }}
                             >
+                              <TooltipV2
+                                value={
+                                  <>
+                                    {language.t("command.browser.toggle")}
+                                    <Show when={browserKeybind().length > 0}>
+                                      <KeybindV2 keys={browserKeybind()} variant="neutral" />
+                                    </Show>
+                                  </>
+                                }
+                                placement="bottom"
+                                class="flex items-center"
+                              >
+                                <IconButtonV2
+                                  icon={<Icon name="globe" />}
+                                  variant="ghost-muted"
+                                  size="large"
+                                  onClick={() => {
+                                    openReviewPanel()
+                                    tabs().open("browser")
+                                  }}
+                                  aria-label={language.t("command.browser.toggle")}
+                                />
+                              </TooltipV2>
                               <TooltipV2
                                 value={
                                   <>
@@ -724,6 +843,18 @@ export function SessionSidePanel(props: {
                               <SessionContextTab />
                             </div>
                           </Tabs.Content>
+                        </Show>
+
+                        <Show when={browserMounted()}>
+                          <div
+                            role="tabpanel"
+                            data-slot="tabs-content"
+                            class="h-full min-h-0 overflow-hidden"
+                            classList={{ hidden: !browserVisible() }}
+                            inert={!browserVisible() || undefined}
+                          >
+                            <SessionBrowserTab />
+                          </div>
                         </Show>
 
                         <Show when={fileBrowserMounted()}>

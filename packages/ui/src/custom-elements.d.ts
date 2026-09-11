@@ -10,6 +10,17 @@ declare module "solid-js" {
   namespace JSX {
     interface IntrinsicElements {
       [DIFFS_TAG_NAME]: HTMLAttributes<HTMLElement>
+      /**
+       * Electron <webview> element (desktop only). Declared so the embedded
+       * browser view can use it in JSX; it is never rendered on the web build.
+       */
+      webview: HTMLAttributes<HTMLElement> & {
+        src?: string
+        partition?: string
+        allowpopups?: boolean
+        nodeintegration?: boolean
+        webpreferences?: string
+      }
     }
   }
 }
