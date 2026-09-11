@@ -37,6 +37,7 @@ export default defineConfig({
       "import.meta.env.OPENCODE_CHANNEL": JSON.stringify(channel),
     },
     build: {
+      minify: "esbuild",
       rollupOptions: {
         input: { index: "src/main/index.ts", sidecar: "src/main/sidecar.ts" },
         // Keep this identical to electron-vite's Node 20.11+ shim. Its regex insertion can
@@ -81,6 +82,7 @@ const require = __cjs_mod__.createRequire(import.meta.url);
   },
   preload: {
     build: {
+      minify: "esbuild",
       rollupOptions: {
         input: { index: "src/preload/index.ts" },
         output: {
@@ -95,6 +97,7 @@ const require = __cjs_mod__.createRequire(import.meta.url);
     publicDir: "../../../app/public",
     root: "src/renderer",
     build: {
+      minify: "esbuild",
       sourcemap: true,
       rollupOptions: {
         input: {

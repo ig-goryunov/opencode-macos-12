@@ -324,13 +324,18 @@ const main = Effect.gen(function* () {
   const updateTimer = setInterval(() => void updater.check(), 10 * 60 * 1000)
   updateTimer.unref()
   app.once("will-quit", () => clearInterval(updateTimer))
-  yield* Effect.promise(() => startNetLog()).pipe(
-    Effect.catch((error) =>
-      Effect.sync(() => {
-        logger.warn("failed to start net log", error)
-      }),
-    ),
-  )
+  // Chromium net-log continuously records all network traffic; keep it off in
+  // packaged builds (opt-in via OPENCODE_NETLOG=1) so it does not write to disk
+  // in the background. Debug log export can still start it on demand.
+  if (!app.isPackaged || process.env.OPENCODE_NETLOG === "1") {
+    yield* Effect.promise(() => startNetLog()).pipe(
+      Effect.catch((error) =>
+        Effect.sync(() => {
+          logger.warn("failed to start net log", error)
+        }),
+      ),
+    )
+  }
 
   const loadingTask = yield* Effect.gen(function* () {
     logger.log("sidecar connection started", { version: SIDECAR_VERSION })

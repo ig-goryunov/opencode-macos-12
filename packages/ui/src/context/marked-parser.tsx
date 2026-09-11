@@ -1,6 +1,9 @@
-import katex from "katex"
 import { Marked, type MarkedExtension, type Tokens } from "marked"
 import markedShiki from "marked-shiki"
+
+type KatexModule = typeof import("katex")
+let katexModule: Promise<KatexModule> | undefined
+const loadKatex = () => (katexModule ??= import("katex"))
 
 export function createMarkdownParser(highlight: (code: string, language: string) => string | Promise<string>) {
   return new Marked(
@@ -40,7 +43,7 @@ const katexExtension: MarkedExtension = {
           displayMode: false,
         }
       },
-      renderer: renderKatexToken,
+      renderer: renderKatexToken as unknown as KatexRenderer,
     },
     {
       name: "blockKatex",
@@ -55,12 +58,17 @@ const katexExtension: MarkedExtension = {
           displayMode: true,
         }
       },
-      renderer: renderKatexToken,
+      renderer: renderKatexToken as unknown as KatexRenderer,
     },
   ],
 }
 
-function renderKatexToken(token: Tokens.Generic) {
+// marked's type declares sync renderers, but it awaits renderer results at
+// runtime. Katex is imported lazily so chats without math never load it.
+type KatexRenderer = (token: Tokens.Generic) => string
+
+async function renderKatexToken(token: Tokens.Generic) {
+  const katex = (await loadKatex()).default
   return katex.renderToString(typeof token.text === "string" ? token.text : "", {
     displayMode: token.displayMode === true,
     throwOnError: false,
