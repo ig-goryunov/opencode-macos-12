@@ -1,19 +1,14 @@
 import { Icon } from "@opencode-ai/ui/icon"
 import { IconButton } from "@opencode-ai/ui/icon-button"
 import { Tooltip } from "@opencode-ai/ui/tooltip"
-import { createMemo, createSignal, Show } from "solid-js"
+import { createMemo, createSignal, onCleanup, Show } from "solid-js"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { useServer } from "@/context/server"
+import { registerBrowserWebview, type BrowserWebview } from "@/pages/session/browser-bridge"
 import { displayUrl, normalizeBrowserUrl, rewriteLocalhost, serverHostname } from "@/pages/session/browser-url"
 
-type WebviewElement = HTMLElement & {
-  getURL(): string
-  loadURL(url: string): Promise<void>
-  reload(): void
-  goBack(): void
-  goForward(): void
-}
+type WebviewElement = BrowserWebview
 
 type WebviewEvent = {
   url?: string
@@ -72,6 +67,10 @@ export function SessionBrowserTab() {
   const attach = (element: HTMLElement) => {
     const view = element as WebviewElement
     webview = view
+    onCleanup(() => registerBrowserWebview(undefined))
+    // Register only once the guest is ready, otherwise loadURL throws
+    // "The WebView must be attached to the DOM and the dom-ready event emitted".
+    view.addEventListener("dom-ready", () => registerBrowserWebview(view))
     view.addEventListener("did-start-loading", () => {
       setLoading(true)
       setError(null)

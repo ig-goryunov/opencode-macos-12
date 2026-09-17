@@ -1,0 +1,8 @@
+Control the embedded browser view in the OpenCode desktop app.
+
+Actions:
+- open: load a URL (requires `url`). Useful for local dev servers (http://localhost:PORT) and any http/https page.
+- read: return the current page URL, title, and visible text.
+- back / forward / reload: navigate the current page history.
+
+The embedded browser only exists while the user has the "Browser" tab open in the Review panel. If it is not open, this tool returns an error telling the user to open it. The browser runs on the user's own machine; when OpenCode is connected to a remote server, localhost refers to the local machine unless the user opened the page through the server host.
