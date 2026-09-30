@@ -2,10 +2,17 @@ import { Icon } from "@opencode-ai/ui/icon"
 import { IconButton } from "@opencode-ai/ui/icon-button"
 import { Tooltip } from "@opencode-ai/ui/tooltip"
 import { createMemo, createSignal, onCleanup, Show } from "solid-js"
+import { useParams } from "@solidjs/router"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { useServer } from "@/context/server"
-import { registerBrowserWebview, type BrowserWebview } from "@/pages/session/browser-bridge"
+import {
+  recallBrowserUrl,
+  registerBrowserWebview,
+  rememberBrowserUrl,
+  unregisterBrowserWebview,
+  type BrowserWebview,
+} from "@/pages/session/browser-bridge"
 import { displayUrl, normalizeBrowserUrl, rewriteLocalhost, serverHostname } from "@/pages/session/browser-url"
 
 type WebviewElement = BrowserWebview
@@ -27,15 +34,19 @@ export function SessionBrowserTab() {
   const platform = usePlatform()
   const language = useLanguage()
   const server = useServer()
+  const params = useParams()
 
   const isDesktop = () => platform.platform === "desktop"
+  const sessionID = () => params.id ?? ""
   // The embedded browser always runs on this machine. When OpenCode is
   // connected to a remote server, a `localhost` dev server most likely lives on
   // that server, so we offer to rewrite the host.
   const remoteHost = createMemo(() => (server.isLocal() ? undefined : serverHostname(server.current)))
 
-  const [address, setAddress] = createSignal("")
-  const [current, setCurrent] = createSignal("")
+  // Each session keeps its own page, so reopening the tab restores it.
+  const remembered = sessionID() ? recallBrowserUrl(sessionID()) : undefined
+  const [address, setAddress] = createSignal(remembered ? displayUrl(remembered) : "")
+  const [current, setCurrent] = createSignal(remembered ?? "")
   const [loading, setLoading] = createSignal(false)
   const [error, setError] = createSignal<string | null>(null)
   const [rewritten, setRewritten] = createSignal(false)
@@ -51,6 +62,7 @@ export function SessionBrowserTab() {
     setCurrent(result.url)
     setAddress(displayUrl(result.url))
     setError(null)
+    if (sessionID()) rememberBrowserUrl(sessionID(), result.url)
     void webview?.loadURL(result.url).catch(() => undefined)
   }
 
@@ -67,10 +79,20 @@ export function SessionBrowserTab() {
   const attach = (element: HTMLElement) => {
     const view = element as WebviewElement
     webview = view
-    onCleanup(() => registerBrowserWebview(undefined))
+    const key = sessionID()
+    onCleanup(() => {
+      if (key) unregisterBrowserWebview(key, view)
+    })
     // Register only once the guest is ready, otherwise loadURL throws
     // "The WebView must be attached to the DOM and the dom-ready event emitted".
-    view.addEventListener("dom-ready", () => registerBrowserWebview(view))
+    view.addEventListener("dom-ready", () => {
+      if (!view.isConnected) return
+      if (key) registerBrowserWebview(key, view)
+      const restored = key ? recallBrowserUrl(key) : undefined
+      if (restored && view.getURL() === "about:blank") {
+        void view.loadURL(restored).catch(() => undefined)
+      }
+    })
     view.addEventListener("did-start-loading", () => {
       setLoading(true)
       setError(null)
@@ -87,6 +109,7 @@ export function SessionBrowserTab() {
     const syncUrl = (event: Event) => {
       const url = (event as unknown as WebviewEvent).url
       if (!url || url === "about:blank") return
+      if (key) rememberBrowserUrl(key, url)
       setCurrent(url)
       setAddress(displayUrl(url))
     }
