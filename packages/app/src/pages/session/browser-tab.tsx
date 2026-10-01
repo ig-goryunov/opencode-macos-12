@@ -7,12 +7,18 @@ import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { useServer } from "@/context/server"
 import {
-  recallBrowserUrl,
   registerBrowserWebview,
-  rememberBrowserUrl,
   unregisterBrowserWebview,
   type BrowserWebview,
 } from "@/pages/session/browser-bridge"
+import {
+  browserHistory,
+  browserPartition,
+  recordBrowserNavigation,
+  rememberBrowserUrl,
+  restoreBrowserUrl,
+  stepBrowserHistory,
+} from "@/pages/session/browser-state"
 import { displayUrl, normalizeBrowserUrl, rewriteLocalhost, serverHostname } from "@/pages/session/browser-url"
 
 type WebviewElement = BrowserWebview
@@ -43,8 +49,8 @@ export function SessionBrowserTab() {
   // that server, so we offer to rewrite the host.
   const remoteHost = createMemo(() => (server.isLocal() ? undefined : serverHostname(server.current)))
 
-  // Each session keeps its own page, so reopening the tab restores it.
-  const remembered = sessionID() ? recallBrowserUrl(sessionID()) : undefined
+  // Each session keeps its own page and history, so reopening the tab restores it.
+  const remembered = sessionID() ? restoreBrowserUrl(sessionID()) : undefined
   const [address, setAddress] = createSignal(remembered ? displayUrl(remembered) : "")
   const [current, setCurrent] = createSignal(remembered ?? "")
   const [loading, setLoading] = createSignal(false)
@@ -64,6 +70,17 @@ export function SessionBrowserTab() {
     setError(null)
     if (sessionID()) rememberBrowserUrl(sessionID(), result.url)
     void webview?.loadURL(result.url).catch(() => undefined)
+  }
+
+  const step = (delta: 1 | -1) => {
+    const id = sessionID()
+    if (!id) return
+    const url = stepBrowserHistory(id, delta)
+    if (!url) return
+    setCurrent(url)
+    setAddress(displayUrl(url))
+    setError(null)
+    void webview?.loadURL(url).catch(() => undefined)
   }
 
   const reload = () => {
@@ -88,7 +105,7 @@ export function SessionBrowserTab() {
     view.addEventListener("dom-ready", () => {
       if (!view.isConnected) return
       if (key) registerBrowserWebview(key, view)
-      const restored = key ? recallBrowserUrl(key) : undefined
+      const restored = key ? restoreBrowserUrl(key) : undefined
       if (restored && view.getURL() === "about:blank") {
         void view.loadURL(restored).catch(() => undefined)
       }
@@ -109,7 +126,7 @@ export function SessionBrowserTab() {
     const syncUrl = (event: Event) => {
       const url = (event as unknown as WebviewEvent).url
       if (!url || url === "about:blank") return
-      if (key) rememberBrowserUrl(key, url)
+      if (key) recordBrowserNavigation(key, url)
       setCurrent(url)
       setAddress(displayUrl(url))
     }
@@ -126,10 +143,22 @@ export function SessionBrowserTab() {
     <div class="flex h-full min-h-0 flex-col overflow-hidden">
       <div class="flex shrink-0 items-center gap-1 border-b border-border-weaker-base px-2 py-1.5">
         <Tooltip value={language.t("common.goBack")} placement="bottom">
-          <IconButton icon="chevron-left" variant="ghost" class="h-7 w-7" onClick={() => webview?.goBack()} />
+          <IconButton
+            icon="chevron-left"
+            variant="ghost"
+            class="h-7 w-7"
+            disabled={!current() || !browserHistory(sessionID()).canBack}
+            onClick={() => step(-1)}
+          />
         </Tooltip>
         <Tooltip value={language.t("common.goForward")} placement="bottom">
-          <IconButton icon="chevron-right" variant="ghost" class="h-7 w-7" onClick={() => webview?.goForward()} />
+          <IconButton
+            icon="chevron-right"
+            variant="ghost"
+            class="h-7 w-7"
+            disabled={!current() || !browserHistory(sessionID()).canForward}
+            onClick={() => step(1)}
+          />
         </Tooltip>
         <Tooltip value={language.t("session.browser.reload")} placement="bottom">
           <IconButton icon="reset" variant="ghost" class="h-7 w-7" onClick={reload} />
@@ -213,7 +242,7 @@ export function SessionBrowserTab() {
             class="h-full w-full"
             style={{ "background-color": "var(--background-base)" }}
             src="about:blank"
-            partition="persist:opencode-browser"
+            partition={browserPartition(sessionID())}
           />
         </Show>
       </div>

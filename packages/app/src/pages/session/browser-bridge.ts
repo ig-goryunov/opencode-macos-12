@@ -1,10 +1,11 @@
-import { onCleanup, onMount } from "solid-js"
+import { createSignal, onCleanup, onMount } from "solid-js"
 import { usePlatform } from "@/context/platform"
 import { useSDK } from "@/context/sdk"
 import { useServer } from "@/context/server"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { authTokenFromCredentials } from "@/utils/server"
 import { normalizeBrowserUrl, rewriteLocalhost, serverHostname } from "@/pages/session/browser-url"
+import { rememberBrowserUrl, stepBrowserHistory } from "@/pages/session/browser-state"
 
 export type BrowserWebview = HTMLElement & {
   getURL(): string
@@ -19,22 +20,36 @@ type Waiter = (view: BrowserWebview) => void
 
 /**
  * The embedded browser is per session: every session keeps its own <webview>,
- * its own last URL and its own pending agent commands. All of this lives in
- * module scope (keyed by session id) so that switching sessions neither loses
- * the view nor the page.
+ * its own last URL/history (see browser-state.ts) and its own pending agent
+ * commands. The registry lives in module scope so switching sessions neither
+ * loses the view nor the page. A session that is not on screen gets a hidden
+ * background <webview> (rendered by BrowserBackgroundHosts) so the agent can
+ * still drive it.
  */
-const webviews = new Map<string, BrowserWebview>()
+type Entry = { view: BrowserWebview; background: boolean }
+
+const webviews = new Map<string, Entry>()
 const waiters = new Map<string, Set<Waiter>>()
-const urls = new Map<string, string>()
-const held = new Map<string, { command: BrowserCommand; at: number }[]>()
 const handled = new Set<string>()
 
-const HOLD_TTL = 20_000
+const BACKGROUND_LIMIT = 3
+const [background, setBackground] = createSignal<string[]>([])
+
 const HANDLED_TTL = 60_000
 
+/** Sessions that currently need a hidden webview (for the agent). */
+export function backgroundSessions() {
+  return background()
+}
+
 /** The embedded browser tab registers its <webview> here so the bridge can drive it. */
-export function registerBrowserWebview(sessionID: string, view: BrowserWebview) {
-  webviews.set(sessionID, view)
+export function registerBrowserWebview(sessionID: string, view: BrowserWebview, options?: { background?: boolean }) {
+  const isBackground = options?.background ?? false
+  const existing = webviews.get(sessionID)
+  // A visible view always wins; a background view never replaces it.
+  if (existing && !existing.background && isBackground) return
+  webviews.set(sessionID, { view, background: isBackground })
+  if (!isBackground && existing?.background) releaseBackgroundWebview(sessionID)
   const set = waiters.get(sessionID)
   if (!set) return
   waiters.delete(sessionID)
@@ -42,16 +57,22 @@ export function registerBrowserWebview(sessionID: string, view: BrowserWebview) 
 }
 
 export function unregisterBrowserWebview(sessionID: string, view: BrowserWebview) {
-  if (webviews.get(sessionID) === view) webviews.delete(sessionID)
+  const existing = webviews.get(sessionID)
+  if (existing?.view === view) webviews.delete(sessionID)
 }
 
-export function rememberBrowserUrl(sessionID: string, url: string) {
-  if (!url || url === "about:blank") return
-  urls.set(sessionID, url)
+/** Ask BrowserBackgroundHosts to mount a hidden webview for this session. */
+export function ensureBackgroundWebview(sessionID: string) {
+  if (webviews.has(sessionID)) return
+  setBackground((list) => {
+    if (list.includes(sessionID)) return list
+    const next = [...list, sessionID]
+    return next.length > BACKGROUND_LIMIT ? next.slice(next.length - BACKGROUND_LIMIT) : next
+  })
 }
 
-export function recallBrowserUrl(sessionID: string) {
-  return urls.get(sessionID)
+export function releaseBackgroundWebview(sessionID: string) {
+  setBackground((list) => (list.includes(sessionID) ? list.filter((id) => id !== sessionID) : list))
 }
 
 function markHandled(requestID: string) {
@@ -61,7 +82,7 @@ function markHandled(requestID: string) {
 
 function nextWebview(sessionID: string, timeoutMs: number): Promise<BrowserWebview | undefined> {
   const existing = webviews.get(sessionID)
-  if (existing) return Promise.resolve(existing)
+  if (existing) return Promise.resolve(existing.view)
   return new Promise((resolve) => {
     const settle = (view: BrowserWebview) => {
       clearTimeout(timer)
@@ -83,27 +104,12 @@ function nextWebview(sessionID: string, timeoutMs: number): Promise<BrowserWebvi
 
 type BrowserCommand = { requestID: string; action: string; url?: string; sessionID?: string }
 
-function holdBrowserCommand(command: BrowserCommand) {
-  const target = command.sessionID
-  if (!target) return
-  const list = held.get(target) ?? []
-  list.push({ command, at: Date.now() })
-  held.set(target, list)
-}
-
-function takeBrowserCommands(sessionID: string) {
-  const list = held.get(sessionID) ?? []
-  held.delete(sessionID)
-  return list.filter((entry) => Date.now() - entry.at < HOLD_TTL).map((entry) => entry.command)
-}
-
 /**
  * Always-mounted bridge that lets the AI agent drive the embedded browser. On a
- * `browser.command` event it opens the Review panel and the Browser tab (so the
- * webview mounts), performs the action, then posts the result back to the
- * server. Lives on the session page because the Browser tab itself unmounts
- * while closed. Commands addressed to another session are held until that
- * session's page is mounted, instead of being lost.
+ * `browser.command` event it drives the browser of the session the command
+ * belongs to: the visible one opens the Review panel and the Browser tab first,
+ * while a hidden session gets a background webview. Lives on the session page
+ * because the Browser tab itself unmounts while closed.
  */
 export function useBrowserBridge() {
   const platform = usePlatform()
@@ -137,11 +143,20 @@ export function useBrowserBridge() {
       return
     }
 
-    // Open the Review panel and the Browser tab so the webview mounts.
-    view().reviewPanel.open()
-    tabs().open("browser")
+    const visible = sessionID()
+    const target = command.sessionID ?? visible
+    const isVisible = target === visible && !!visible
 
-    const webview = await nextWebview(sessionID(), 15_000)
+    if (isVisible) {
+      // Open the Review panel and the Browser tab so the webview mounts.
+      view().reviewPanel.open()
+      tabs().open("browser")
+    } else {
+      // Not on screen: mount a hidden webview for that session instead.
+      ensureBackgroundWebview(target)
+    }
+
+    const webview = await nextWebview(target, 15_000)
     if (!webview) {
       await reply(command.requestID, { ok: false, error: "the browser view did not open" })
       return
@@ -155,15 +170,23 @@ export function useBrowserBridge() {
           return
         }
         const host = server.isLocal() ? undefined : serverHostname(server.current)
-        const target = host ? rewriteLocalhost(normalized, host).url : normalized
-        await webview.loadURL(target)
-        rememberBrowserUrl(sessionID(), target)
-        await reply(command.requestID, { ok: true, url: target })
+        const next = host ? rewriteLocalhost(normalized, host).url : normalized
+        await webview.loadURL(next)
+        rememberBrowserUrl(target, next)
+        await reply(command.requestID, { ok: true, url: next })
+        return
+      }
+      if (command.action === "back" || command.action === "forward") {
+        const next = stepBrowserHistory(target, command.action === "back" ? -1 : 1)
+        if (next) {
+          await webview.loadURL(next)
+          await reply(command.requestID, { ok: true, url: next })
+          return
+        }
+        await reply(command.requestID, { ok: true, url: webview.getURL() })
         return
       }
       if (command.action === "reload") webview.reload()
-      if (command.action === "back") webview.goBack()
-      if (command.action === "forward") webview.goForward()
       if (command.action === "read") {
         const info = (await webview.executeJavaScript(
           "({ url: location.href, title: document.title, text: (document.body ? document.body.innerText : '').slice(0, 20000) })",
@@ -183,18 +206,8 @@ export function useBrowserBridge() {
       on: (type: string, callback: (event: { properties: BrowserCommand }) => void) => () => void
     }
     const stop = emitter.on("browser.command", (event) => {
-      const command = event.properties
-      const target = command.sessionID
-      if (target && target !== sessionID()) {
-        // The command belongs to another session; keep it until that page mounts.
-        holdBrowserCommand(command)
-        return
-      }
-      void run(command)
+      void run(event.properties)
     })
     onCleanup(stop)
-
-    // This session may have received commands while its page was not mounted.
-    for (const command of takeBrowserCommands(sessionID())) void run(command)
   })
 }

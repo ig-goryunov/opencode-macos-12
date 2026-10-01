@@ -66,6 +66,7 @@ import { legacySessionHref, legacySessionServer, requireServerKey, sessionHref }
 import { createSessionLineage } from "@/pages/session/session-lineage"
 
 import { SessionPage, SessionRouteErrorBoundary, TargetSessionRouteContent } from "@/pages/session"
+import { BrowserBackgroundHosts } from "@/pages/session/browser-hosts"
 import { NewHome } from "@/pages/home"
 import { LegacyHome } from "@/pages/home/legacy-home"
 
@@ -605,6 +606,7 @@ export function AppInterface(props: {
                 <Routes serverScoped={props.serverScoped} />
               </Dynamic>
             </Show>
+            <BrowserBackgroundHosts />
           </ConnectionGate>
         </SettingsProvider>
       </GlobalProvider>
