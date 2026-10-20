@@ -2,13 +2,13 @@ export const MOBILE_HTML = `<!doctype html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#0b0b0c">
 <title>OpenCode</title>
 <style>
   :root { color-scheme: dark; --bg:#0b0b0c; --card:#161618; --line:#26262b; --text:#e4e4e7; --muted:#8f8f99; --accent:#4f8cff; --danger:#f2555a; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html,body { margin:0; height:100%; background:var(--bg); color:var(--text); font:15px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif; }
+  html,body { margin:0; height:100%; height:100dvh; touch-action:pan-x pan-y; -webkit-text-size-adjust:100%; background:var(--bg); color:var(--text); font:15px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif; }
   body { display:flex; flex-direction:column; }
   header { position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top) + 10px) 14px 10px; background:rgba(11,11,12,.94); backdrop-filter:blur(12px); border-bottom:1px solid var(--line); }
   header .t { flex:1; min-width:0; font-weight:600; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -22,6 +22,8 @@ export const MOBILE_HTML = `<!doctype html>
   .card .name { font-weight:600; font-size:15px; display:flex; align-items:center; gap:8px; }
   .card .path { color:var(--muted); font-size:12px; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .empty { color:var(--muted); text-align:center; padding:40px 10px; font-size:14px; }
+  #banner { display:none; padding:8px 14px; background:#3a1d1f; color:#ffb4b7; font-size:12px; border-bottom:1px solid #5a2a2d; }
+  #banner.show { display:block; }
   .dot { width:7px; height:7px; border-radius:50%; background:#39c07a; flex:none; }
   .dot.busy { background:var(--accent); animation:pulse 1.2s infinite; }
   @keyframes pulse { 50% { opacity:.35; } }
@@ -41,7 +43,9 @@ export const MOBILE_HTML = `<!doctype html>
   .msg .txt h1,.msg .txt h2,.msg .txt h3 { font-size:15px; margin:10px 0 6px; }
   .msg .txt ul { margin:6px 0; padding-left:20px; }
   .msg .txt blockquote { margin:6px 0; padding-left:10px; border-left:2px solid var(--line); color:var(--muted); }
-  .msg .copy { position:absolute; top:8px; right:8px; border:1px solid var(--line); background:#1b1b1f; color:var(--muted); font-size:11px; border-radius:7px; padding:3px 7px; opacity:.85; }
+  .msg .copy { position:absolute; top:6px; right:6px; display:flex; align-items:center; justify-content:center; width:26px; height:26px; padding:0; border:1px solid var(--line); background:#1b1b1f; color:var(--muted); border-radius:8px; opacity:.8; }
+  .msg .copy:active { background:#26262b; color:var(--text); }
+  .msg .copy svg { width:14px; height:14px; display:block; }
   .msg .copy:active { background:#26262b; }
   .tool { font-size:12px; color:var(--muted); margin-top:8px; border-left:2px solid var(--line); padding-left:8px; }
   .more { text-align:center; color:var(--muted); font-size:12px; padding:6px 0 2px; }
@@ -69,12 +73,13 @@ export const MOBILE_HTML = `<!doctype html>
     <div class="t" id="title">OpenCode</div>
     <button id="reload">&#8635;</button>
   </header>
+  <div id="banner"></div>
   <main id="list"></main>
   <main id="chat" hidden><div id="perms"></div><div id="messages"></div></main>
   <footer hidden>
     <div id="statusline"></div>
     <div class="row">
-      <textarea id="input" rows="1" placeholder="Сообщение..."></textarea>
+      <textarea id="input" rows="1" placeholder="Сообщение..." enterkeyhint="send"></textarea>
       <button id="send">&#8594;</button>
     </div>
     <button id="abort" hidden>Остановить агента</button>
@@ -82,6 +87,8 @@ export const MOBILE_HTML = `<!doctype html>
 <script>
 (function () {
   var LIMIT = 80
+  var COPY_ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V3.5A1.5 1.5 0 0 0 9 2H3.5A1.5 1.5 0 0 0 2 3.5V9a1.5 1.5 0 0 0 1.5 1.5H5.5"/></svg>'
+  var CHECK_ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 8.5 6.5 12 13 4.5"/></svg>'
   var S = { workspaces: [], ws: null, sessions: [], session: null, messages: [], perms: [], statuses: {}, mode: "list", raw: {}, rendered: "" }
 
   function el(id) { return document.getElementById(id) }
@@ -128,7 +135,13 @@ export const MOBILE_HTML = `<!doctype html>
     return Math.round(s / 86400) + " дн назад"
   }
   function fail(e) {
-    el("statusline").textContent = "Ошибка: " + (e && e.message ? e.message : e)
+    var message = "Ошибка: " + (e && e.message ? e.message : e)
+    el("statusline").textContent = message
+    var banner = el("banner")
+    banner.textContent = message
+    banner.classList.add("show")
+    clearTimeout(S.bannerTimer)
+    S.bannerTimer = setTimeout(function () { banner.classList.remove("show") }, 4000)
   }
 
   function md(src) {
@@ -165,7 +178,7 @@ export const MOBILE_HTML = `<!doctype html>
       if (!S.workspaces.length) html += '<div class="empty">Нет рабочих областей</div>'
       el("list").innerHTML = html
       Array.prototype.forEach.call(el("list").querySelectorAll("[data-ws]"), function (b) {
-        b.onclick = function () { S.ws = S.workspaces[+b.getAttribute("data-ws")]; S.session = null; loadSessions() }
+        b.onclick = function () { openWorkspace(+b.getAttribute("data-ws")) }
       })
       return
     }
@@ -179,12 +192,7 @@ export const MOBILE_HTML = `<!doctype html>
     if (!S.sessions.length) out += '<div class="empty">Задач нет</div>'
     el("list").innerHTML = out
     Array.prototype.forEach.call(el("list").querySelectorAll("[data-ses]"), function (b) {
-      b.onclick = function () {
-        var id = b.getAttribute("data-ses")
-        S.session = S.sessions.filter(function (s) { return s.id === id })[0] || { id: id }
-        S.rendered = ""
-        loadChat()
-      }
+      b.onclick = function () { openSession(b.getAttribute("data-ses")) }
     })
   }
 
@@ -200,6 +208,51 @@ export const MOBILE_HTML = `<!doctype html>
     return [S.session && S.session.id, S.messages.length, parts, tail, st && st.type].join("|")
   }
 
+  function messageHtml(m) {
+    var role = m.info && m.info.role
+    var body = ""
+    var text = ""
+    ;(m.parts || []).forEach(function (p) {
+      if (p.type === "text" && p.text) {
+        text += (text ? "\\n\\n" : "") + p.text
+        body += '<div class="txt">' + md(p.text) + "</div>"
+      } else if (p.type === "tool") {
+        var state = p.state && p.state.status ? p.state.status : ""
+        body += '<div class="tool">&#9881; ' + esc(p.tool || "tool") + (state ? " · " + esc(state) : "") + "</div>"
+      }
+    })
+    if (!body) return ""
+    var id = (m.info && m.info.id) || ""
+    S.raw[id] = text
+    return '<div class="msg ' + (role === "user" ? "user" : "assistant") + '">' +
+      '<div class="role">' + (role === "user" ? "Вы" : "Ассистент") + "</div>" + body +
+      (text ? '<button class="copy" data-copy="' + esc(id) + '" aria-label="Скопировать">' + COPY_ICON + "</button>" : "") +
+      "</div>"
+  }
+
+  function bindCopies(root) {
+    Array.prototype.forEach.call(root.querySelectorAll("[data-copy]"), function (b) {
+      b.onclick = function (event) {
+        event.stopPropagation()
+        var value = S.raw[b.getAttribute("data-copy")] || ""
+        if (!value) return
+        var done = function () {
+          b.innerHTML = CHECK_ICON
+          setTimeout(function () { b.innerHTML = COPY_ICON }, 1200)
+        }
+        navigator.clipboard.writeText(value).then(done).catch(function () {
+          var area = document.createElement("textarea")
+          area.value = value
+          document.body.appendChild(area)
+          area.select()
+          try { document.execCommand("copy") } catch (e) {}
+          document.body.removeChild(area)
+          done()
+        })
+      }
+    })
+  }
+
   function renderChat(force) {
     S.mode = "chat"
     el("list").hidden = true
@@ -212,7 +265,6 @@ export const MOBILE_HTML = `<!doctype html>
     var busy = st && st.type && st.type !== "idle"
     el("statusline").textContent = busy ? "Агент работает..." : ""
     el("abort").hidden = !busy
-    el("send").disabled = !!busy
 
     renderPerms()
 
@@ -222,56 +274,31 @@ export const MOBILE_HTML = `<!doctype html>
 
     var view = el("chat")
     var distance = view.scrollHeight - view.scrollTop - view.clientHeight
-    var stick = distance < 80
+    var stick = distance < 80 || S.forceBottom
+    S.forceBottom = false
     var prevTop = view.scrollTop
 
-    S.raw = {}
     var list = S.messages.slice(-LIMIT)
-    var html = ""
-    list.forEach(function (m) {
-      var role = m.info && m.info.role
-      var body = ""
-      var text = ""
-      ;(m.parts || []).forEach(function (p) {
-        if (p.type === "text" && p.text) {
-          text += (text ? "\\n\\n" : "") + p.text
-          body += '<div class="txt">' + md(p.text) + "</div>"
-        } else if (p.type === "tool") {
-          var state = p.state && p.state.status ? p.state.status : ""
-          body += '<div class="tool">&#9881; ' + esc(p.tool || "tool") + (state ? " · " + esc(state) : "") + "</div>"
-        }
-      })
-      if (!body) return
-      var id = (m.info && m.info.id) || ""
-      S.raw[id] = text
-      html += '<div class="msg ' + (role === "user" ? "user" : "assistant") + '">' +
-        '<div class="role">' + (role === "user" ? "Вы" : "Ассистент") + "</div>" + body +
-        (text ? '<button class="copy" data-copy="' + esc(id) + '">Копир.</button>' : "") +
-        "</div>"
-    })
-    if (S.messages.length > LIMIT) html = '<div class="more">Показаны последние ' + LIMIT + "</div>" + html
+    var ids = list.map(function (m) { return (m.info && m.info.id) || "" }).join(",")
+    var container = el("messages")
 
-    el("messages").innerHTML = html || '<div class="empty">Сообщений пока нет</div>'
-    Array.prototype.forEach.call(el("messages").querySelectorAll("[data-copy]"), function (b) {
-      b.onclick = function (event) {
-        event.stopPropagation()
-        var value = S.raw[b.getAttribute("data-copy")] || ""
-        if (!value) return
-        navigator.clipboard.writeText(value).then(function () {
-          b.textContent = "OK"
-          setTimeout(function () { b.textContent = "Копир." }, 1200)
-        }).catch(function () {
-          var area = document.createElement("textarea")
-          area.value = value
-          document.body.appendChild(area)
-          area.select()
-          try { document.execCommand("copy") } catch (e) {}
-          document.body.removeChild(area)
-          b.textContent = "OK"
-          setTimeout(function () { b.textContent = "Копир." }, 1200)
-        })
+    if (!force && ids === S.ids && container.children.length) {
+      var html = messageHtml(list[list.length - 1])
+      var node = container.lastElementChild
+      if (html && node && node.classList.contains("msg") && node.outerHTML !== html) {
+        node.outerHTML = html
+        var fresh = container.lastElementChild
+        if (fresh && fresh.classList.contains("msg")) bindCopies(fresh)
       }
-    })
+    } else {
+      S.raw = {}
+      S.ids = ids
+      var out = ""
+      list.forEach(function (m) { out += messageHtml(m) })
+      if (S.messages.length > LIMIT) out = '<div class="more">Показаны последние ' + LIMIT + "</div>" + out
+      container.innerHTML = out || '<div class="empty">Сообщений пока нет</div>'
+      bindCopies(container)
+    }
 
     if (stick) view.scrollTop = view.scrollHeight
     else if (view.scrollTop !== prevTop) view.scrollTop = prevTop
@@ -297,6 +324,39 @@ export const MOBILE_HTML = `<!doctype html>
         }).then(function () { return loadChat() }).catch(function (e) { fail(e); b.disabled = false })
       }
     })
+  }
+
+  function openWorkspace(index) {
+    S.ws = S.workspaces[index]
+    S.session = null
+    S.sessions = []
+    S.rendered = ""
+    history.pushState({ level: "tasks" }, "")
+    renderList()
+    loadSessions()
+  }
+
+  function openSession(id) {
+    S.session = S.sessions.filter(function (s) { return s.id === id })[0] || { id: id }
+    S.rendered = ""
+    history.pushState({ level: "chat" }, "")
+    renderChat(true)
+    loadChat()
+  }
+
+  function goBack() {
+    if (S.mode === "chat") {
+      S.session = null
+      S.rendered = ""
+      renderList()
+      loadSessions()
+      return
+    }
+    if (S.ws) {
+      S.ws = null
+      S.sessions = []
+      renderList()
+    }
   }
 
   function loadMeta() {
@@ -343,7 +403,8 @@ export const MOBILE_HTML = `<!doctype html>
     if (!text || !S.session) return
     el("input").value = ""
     el("input").style.height = "auto"
-    api("/session/" + encodeURIComponent(S.session.id) + "/message" + q(), {
+    S.forceBottom = true
+    api("/session/" + encodeURIComponent(S.session.id) + "/prompt_async" + q(), {
       method: "POST",
       body: JSON.stringify({ parts: [{ type: "text", text: text }] }),
     }).then(function () { return loadChat() }).catch(function (e) { fail(e); el("input").value = text })
@@ -362,9 +423,13 @@ export const MOBILE_HTML = `<!doctype html>
   }, 3000)
 
   el("back").onclick = function () {
-    if (S.mode === "chat") { S.session = null; S.rendered = ""; loadSessions(); return }
-    S.ws = null; S.sessions = []; renderList()
+    if (history.state && history.state.level) history.back()
+    else goBack()
   }
+  window.addEventListener("popstate", function () { goBack() })
+  document.addEventListener("gesturestart", function (e) { e.preventDefault() })
+  document.addEventListener("gesturechange", function (e) { e.preventDefault() })
+  document.addEventListener("dblclick", function (e) { e.preventDefault() }, { passive: false })
   el("reload").onclick = function () {
     if (S.mode === "chat") { S.rendered = ""; loadChat() }
     else if (S.ws) loadSessions()
