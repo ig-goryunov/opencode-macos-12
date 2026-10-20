@@ -29,6 +29,20 @@ export type UpdaterAPI = {
   install: () => Promise<void>
 }
 
+export type RemoteWorkspace = { directory: string; name: string }
+export type RemoteStatus = {
+  active: boolean
+  url?: string
+  qrSvg?: string
+  workspaces?: RemoteWorkspace[]
+  error?: string
+}
+export type RemoteAPI = {
+  start: (input: { workspaces: RemoteWorkspace[] }) => Promise<RemoteStatus>
+  stop: () => Promise<RemoteStatus>
+  status: () => Promise<RemoteStatus>
+}
+
 export type LinuxDisplayBackend = "wayland" | "auto"
 export type TitlebarTheme = {
   mode: "light" | "dark"
@@ -48,6 +62,7 @@ export type ElectronAPI = {
   awaitInitialization: () => Promise<ServerReadyData>
   wslServers: WslServersAPI
   updater: UpdaterAPI
+  remote: RemoteAPI
   consumeInitialDeepLinks: () => Promise<string[]>
   getDefaultServerUrl: () => Promise<string | null>
   setDefaultServerUrl: (url: string | null) => Promise<void>

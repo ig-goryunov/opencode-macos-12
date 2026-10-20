@@ -50,6 +50,7 @@ import { cleanupStoreFiles } from "./store-cleanup"
 import { startBackgroundCli } from "./background-cli"
 import { setNativeTranslations } from "./native-translations"
 import { isApplyUpdateRequest, runApplyUpdate } from "./apply-update"
+import { startRemote, statusRemote, stopRemote, type RemoteWorkspace } from "./remote"
 
 // Custom installer mode: replaces this .app bundle from a downloaded update zip
 // and relaunches. Runs before the app window is created.
@@ -288,6 +289,20 @@ const main = Effect.gen(function* () {
     checkForUpdates: () => void showUpdaterDialog(updater, true),
     relaunch,
   }
+  const remote = {
+    async start(input: { workspaces: RemoteWorkspace[] }) {
+      const ready = await Effect.runPromise(Deferred.await(serverReady))
+      if (!ready.password) return { active: false, error: "server is not ready" }
+      return startRemote(input, {
+        url: ready.url,
+        username: ready.username || "opencode",
+        password: ready.password,
+      })
+    },
+    stop: () => stopRemote(),
+    status: async () => statusRemote(),
+  }
+  app.once("will-quit", () => void stopRemote())
   registerIpcHandlers({
     killSidecar: () => killSidecar(),
     relaunch,
@@ -311,6 +326,7 @@ const main = Effect.gen(function* () {
     checkAppExists: (appName) => checkAppExists(appName),
     resolveAppPath: async (appName) => resolveAppPath(appName),
     updater,
+    remote,
     showUpdater: () => showUpdaterDialog(updater, true),
     setBackgroundColor: (color) => setBackgroundColor(color),
     exportDebugLogs: () => exportDebugLogs(),

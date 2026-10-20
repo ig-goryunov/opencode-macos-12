@@ -6,7 +6,7 @@ import type { IpcMainEvent, IpcMainInvokeEvent } from "electron"
 import type { DesktopMenuAction } from "@opencode-ai/app/desktop-menu"
 import { parseDesktopNativeBundle, type DesktopNativeBundle } from "@opencode-ai/app/i18n/desktop-native"
 
-import type { FatalRendererError, ServerReadyData, TitlebarTheme } from "../preload/types"
+import type { FatalRendererError, RemoteAPI, ServerReadyData, TitlebarTheme } from "../preload/types"
 import { runDesktopMenuAction } from "./desktop-menu-actions"
 import { setForceFocus } from "./debug"
 import { assertAttachmentBudget, createPickedFileAuthorizations } from "./attachment-picker"
@@ -47,6 +47,7 @@ type Deps = {
   checkAppExists: (appName: string) => Promise<boolean> | boolean
   resolveAppPath: (appName: string) => Promise<string | null>
   updater: UpdaterController
+  remote: RemoteAPI
   showUpdater: () => Promise<void> | void
   setBackgroundColor: (color: string) => void
   exportDebugLogs: () => Promise<string>
@@ -63,6 +64,22 @@ export function registerIpcHandlers(deps: Deps) {
   app.on("browser-window-created", (_event, win) => win.on("session-end", () => drafts.flush()))
 
   ipcMain.handle("kill-sidecar", () => deps.killSidecar())
+  ipcMain.handle("remote-start", (_event: IpcMainInvokeEvent, input: unknown) => {
+    const raw = (input as { workspaces?: unknown } | undefined)?.workspaces
+    const workspaces = Array.isArray(raw)
+      ? raw
+          .filter((item): item is { directory: string; name?: string } => {
+            return !!item && typeof (item as { directory?: unknown }).directory === "string"
+          })
+          .map((item) => ({
+            directory: item.directory,
+            name: typeof item.name === "string" && item.name ? item.name : item.directory,
+          }))
+      : []
+    return deps.remote.start({ workspaces })
+  })
+  ipcMain.handle("remote-stop", () => deps.remote.stop())
+  ipcMain.handle("remote-status", () => deps.remote.status())
   ipcMain.handle("await-initialization", () => deps.awaitInitialization())
   ipcMain.handle("consume-initial-deep-links", () => deps.consumeInitialDeepLinks())
   ipcMain.handle("get-default-server-url", () => deps.getDefaultServerUrl())

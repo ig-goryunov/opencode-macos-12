@@ -125,14 +125,45 @@ export function SessionContextUsage(props: SessionContextUsageProps) {
     </div>
   )
 
+  const tokens = createMemo(() => context()?.message.tokens)
+  const number = (value: number | undefined) => (value ?? 0).toLocaleString(language.intl())
+  const cacheHit = createMemo(() => {
+    const current = tokens()
+    if (!current) return undefined
+    const read = current.cache.read
+    const total = read + current.cache.write + current.input
+    return total > 0 ? Math.round((read / total) * 100) : undefined
+  })
   const tooltipValue = () => (
-    <div class="flex w-[120px] flex-col gap-2">
-      <ContextTooltipRow name={language.t("context.usage.cost")} value={cost()} />
-      <ContextTooltipRow name={language.t("context.usage.usage")} value={`${context()?.usage ?? 0}%`} />
-      <ContextTooltipRow
-        name={language.t("context.usage.tokens")}
-        value={context()?.total.toLocaleString(language.intl()) ?? "0"}
-      />
+    <div class="flex w-[230px] flex-col gap-2.5">
+      <div class="flex items-baseline justify-between gap-3">
+        <span class="text-v2-text-text-base font-medium">{language.t("context.usage.title")}</span>
+        <span class="text-v2-text-text-muted text-[11px] tabular-nums">
+          {number(context()?.total)} / {context()?.limit ? number(context()?.limit) : "—"} ·{" "}
+          {context()?.usage ?? 0}%
+        </span>
+      </div>
+      <div class="h-1 w-full overflow-hidden rounded-full bg-v2-background-bg-layer-04">
+        <div
+          class="h-full rounded-full bg-v2-icon-icon-base transition-[width] duration-300"
+          style={{ width: `${Math.max(0, Math.min(context()?.usage ?? 0, 100))}%` }}
+        />
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <ContextTooltipRow name={language.t("context.usage.input")} value={number(tokens()?.input)} />
+        <ContextTooltipRow name={language.t("context.usage.output")} value={number(tokens()?.output)} />
+        <Show when={(tokens()?.reasoning ?? 0) > 0}>
+          <ContextTooltipRow name={language.t("context.usage.reasoning")} value={number(tokens()?.reasoning)} />
+        </Show>
+        <ContextTooltipRow
+          name={language.t("context.usage.cache")}
+          value={`${number(tokens()?.cache.read)} / ${number(tokens()?.cache.write)}`}
+        />
+        <Show when={cacheHit() !== undefined}>
+          <ContextTooltipRow name={language.t("context.usage.cacheHit")} value={`${cacheHit()}%`} />
+        </Show>
+        <ContextTooltipRow name={language.t("context.usage.cost")} value={cost()} />
+      </div>
     </div>
   )
 

@@ -56,6 +56,11 @@ const api: ElectronAPI = {
     check: () => ipcRenderer.invoke("updater-check"),
     install: () => ipcRenderer.invoke("updater-install"),
   },
+  remote: {
+    start: (input) => ipcRenderer.invoke("remote-start", input),
+    stop: () => ipcRenderer.invoke("remote-stop"),
+    status: () => ipcRenderer.invoke("remote-status"),
+  },
   consumeInitialDeepLinks: () => ipcRenderer.invoke("consume-initial-deep-links"),
   getDefaultServerUrl: () => ipcRenderer.invoke("get-default-server-url"),
   setDefaultServerUrl: (url) => ipcRenderer.invoke("set-default-server-url", url),

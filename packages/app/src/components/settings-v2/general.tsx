@@ -7,6 +7,9 @@ import { TextInputV2 } from "@opencode-ai/ui/v2/text-input-v2"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
+import { useServer } from "@/context/server"
+import { useSDK } from "@/context/sdk"
+import { DialogMobileAccess } from "@/components/dialog-mobile-access"
 import { useUpdaterAction } from "../updater-action"
 import { useSettings } from "@/context/settings"
 import { ExternalLink } from "../external-link"
@@ -298,6 +301,43 @@ const FollowupSetting = () => {
   )
 }
 
+const MobileAccessSetting = () => {
+  const language = useLanguage()
+  const platform = usePlatform()
+  const dialog = useDialog()
+  const sdk = useSDK()
+  const server = useServer()
+
+  const workspaces = () => {
+    const seen = new Set<string>()
+    const list: { directory: string; name: string }[] = []
+    const push = (directory: string | undefined) => {
+      if (!directory || seen.has(directory)) return
+      seen.add(directory)
+      const name = directory.split("/").filter(Boolean).pop() ?? directory
+      list.push({ directory, name })
+    }
+    push(sdk().directory)
+    for (const project of server.projects.list()) push(project.worktree)
+    return list
+  }
+
+  const open = () => dialog.show(() => <DialogMobileAccess workspaces={workspaces()} />)
+
+  return (
+    <Show when={platform.platform === "desktop"}>
+      <SettingsRowV2
+        title={language.t("settings.general.row.mobile.title")}
+        description={language.t("settings.general.row.mobile.description")}
+      >
+        <ButtonV2 variant="outline" size="normal" data-action="settings-mobile-access" onClick={open}>
+          {language.t("settings.general.row.mobile.action")}
+        </ButtonV2>
+      </SettingsRowV2>
+    </Show>
+  )
+}
+
 export const SettingsGeneralV2: Component<{
   sessionID?: string
 }> = (props) => {
@@ -361,6 +401,8 @@ export const SettingsGeneralV2: Component<{
         <ShellSetting controller={shell} />
 
         <FollowupSetting />
+
+        <MobileAccessSetting />
 
         <SettingsRowV2
           title={language.t("settings.general.row.reasoningSummaries.title")}
