@@ -48,6 +48,7 @@ type Deps = {
   resolveAppPath: (appName: string) => Promise<string | null>
   updater: UpdaterController
   remote: RemoteAPI
+  worktree: typeof import("./worktree").worktree
   showUpdater: () => Promise<void> | void
   setBackgroundColor: (color: string) => void
   exportDebugLogs: () => Promise<string>
@@ -64,6 +65,15 @@ export function registerIpcHandlers(deps: Deps) {
   app.on("browser-window-created", (_event, win) => win.on("session-end", () => drafts.flush()))
 
   ipcMain.handle("kill-sidecar", () => deps.killSidecar())
+  ipcMain.handle("worktree-list", (_event: IpcMainInvokeEvent, directory: string) => deps.worktree.list(directory))
+  ipcMain.handle(
+    "worktree-create",
+    (_event: IpcMainInvokeEvent, directory: string, input: { name: string }) =>
+      deps.worktree.create(directory, input),
+  )
+  ipcMain.handle("worktree-remove", (_event: IpcMainInvokeEvent, directory: string, path: string) =>
+    deps.worktree.remove(directory, path),
+  )
   ipcMain.handle("remote-start", (_event: IpcMainInvokeEvent, input: unknown) => {
     const raw = (input as { workspaces?: unknown } | undefined)?.workspaces
     const workspaces = Array.isArray(raw)

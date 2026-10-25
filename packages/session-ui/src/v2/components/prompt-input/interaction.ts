@@ -302,11 +302,14 @@ export function createPromptInputV2Controller(input: {
       return draft.state.prompt
     },
     addPart,
+    attachFiles(files: File[]) {
+      return attachments?.addAttachments(files)
+    },
     contextItem(id: string) {
       return draft.state.context.items.find((item) => item.key === id)
     },
     comments() {
-      return draft.state.context.items.filter((item) => !!item.comment?.trim())
+      return draft.state.context.items.filter((item) => item.type === "element" || !!item.comment?.trim())
     },
     attachments(): PromptInputV2Attachment[] {
       return draft.state.prompt.filter((part): part is PromptInputV2Attachment => part.type === "image")

@@ -1,6 +1,7 @@
 import { For, onCleanup } from "solid-js"
 import {
   backgroundSessions,
+  guardBrowserNavigation,
   registerBrowserWebview,
   unregisterBrowserWebview,
   type BrowserWebview,
@@ -20,8 +21,8 @@ export function BrowserBackgroundHosts() {
         position: "fixed",
         left: "-10000px",
         top: "0",
-        width: "1024px",
-        height: "768px",
+        width: "320px",
+        height: "240px",
         overflow: "hidden",
         opacity: "0",
         "pointer-events": "none",
@@ -36,6 +37,7 @@ function BackgroundHost(props: { sessionID: string }) {
   const attach = (element: HTMLElement) => {
     const view = element as BrowserWebview
     const id = props.sessionID
+    guardBrowserNavigation(view)
     onCleanup(() => unregisterBrowserWebview(id, view))
     view.addEventListener("dom-ready", () => {
       if (!view.isConnected) return
@@ -57,7 +59,6 @@ function BackgroundHost(props: { sessionID: string }) {
       class="h-full w-full"
       src="about:blank"
       partition={browserPartition(props.sessionID)}
-      webpreferences="backgroundThrottling=no"
     />
   )
 }

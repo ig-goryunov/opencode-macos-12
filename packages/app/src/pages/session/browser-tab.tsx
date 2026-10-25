@@ -5,8 +5,10 @@ import { createMemo, createSignal, onCleanup, Show } from "solid-js"
 import { useParams } from "@solidjs/router"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
+import { usePrompt } from "@/context/prompt"
 import { useServer } from "@/context/server"
 import {
+  guardBrowserNavigation,
   registerBrowserWebview,
   unregisterBrowserWebview,
   type BrowserWebview,
@@ -22,6 +24,118 @@ import {
 import { displayUrl, normalizeBrowserUrl, rewriteLocalhost, serverHostname } from "@/pages/session/browser-url"
 
 type WebviewElement = BrowserWebview
+
+const PICK_SCRIPT = String.raw`(() => {
+  const old = window.__ocPick
+  if (old) old.stop()
+  const overlay = document.createElement("div")
+  const tag = document.createElement("div")
+  const css = { position: "fixed", zIndex: "2147483647", pointerEvents: "none", boxSizing: "border-box", display: "none" }
+  Object.assign(overlay.style, css, { border: "2px solid #4f8cff", background: "rgba(79,140,255,0.12)", borderRadius: "3px" })
+  Object.assign(tag.style, css, {
+    background: "#4f8cff", color: "#fff", font: "11px/1.5 -apple-system,system-ui,sans-serif",
+    padding: "1px 6px", borderRadius: "4px", maxWidth: "70vw", overflow: "hidden",
+    textOverflow: "ellipsis", whiteSpace: "nowrap",
+  })
+  const root = document.documentElement
+  root.appendChild(overlay)
+  root.appendChild(tag)
+  const clean = (value) => String(value || "").replace(/\s+/g, " ").trim()
+  const clip = (value, max) => clean(value).slice(0, max)
+  const labelOf = (el) =>
+    clip(el.getAttribute("aria-label") || el.getAttribute("placeholder") || el.getAttribute("alt") || el.getAttribute("title") || el.getAttribute("name") || el.innerText || el.value, 80) ||
+    el.tagName.toLowerCase()
+  const selectorOf = (el) => {
+    if (el.id) return "#" + CSS.escape(el.id)
+    const parts = []
+    let node = el
+    while (node && node.nodeType === 1 && parts.length < 5) {
+      let part = node.tagName.toLowerCase()
+      const classes = Array.from(node.classList).filter((name) => name && !name.startsWith("__oc")).slice(0, 2)
+      if (classes.length) part += "." + classes.map((name) => CSS.escape(name)).join(".")
+      const parent = node.parentElement
+      if (parent) {
+        const same = Array.from(parent.children).filter((child) => child.tagName === node.tagName)
+        if (same.length > 1) part += ":nth-of-type(" + (same.indexOf(node) + 1) + ")"
+      }
+      parts.unshift(part)
+      if (node.id) { parts[0] = "#" + CSS.escape(node.id); break }
+      node = parent
+    }
+    return parts.join(" > ")
+  }
+  const rectOf = (el) => {
+    const r = el.getBoundingClientRect()
+    return { x: Math.round(r.left), y: Math.round(r.top), width: Math.round(r.width), height: Math.round(r.height) }
+  }
+  const move = (event) => {
+    const el = event.target
+    if (!el || el === overlay || el === tag || el.nodeType !== 1) return
+    const r = el.getBoundingClientRect()
+    overlay.style.display = "block"
+    overlay.style.left = r.left + "px"
+    overlay.style.top = r.top + "px"
+    overlay.style.width = r.width + "px"
+    overlay.style.height = r.height + "px"
+    tag.style.display = "block"
+    tag.textContent = labelOf(el)
+    tag.style.left = Math.max(0, r.left) + "px"
+    tag.style.top = Math.max(0, r.top - 19) + "px"
+  }
+  const stop = () => {
+    window.__ocPickActive = false
+    overlay.remove()
+    tag.remove()
+    document.removeEventListener("mousemove", move, true)
+    document.removeEventListener("click", done, true)
+    document.removeEventListener("keydown", escape, true)
+    window.__ocPick = undefined
+  }
+  const done = (event) => {
+    const el = event.target
+    if (!el || el === overlay || el === tag || el.nodeType !== 1) return
+    event.preventDefault()
+    event.stopPropagation()
+    event.stopImmediatePropagation()
+    window.__ocPickResult = {
+      cancelled: false,
+      url: location.href,
+      title: document.title,
+      tag: el.tagName.toLowerCase(),
+      role: el.getAttribute("role") || "",
+      label: labelOf(el),
+      text: clip(el.innerText || el.value, 300),
+      selector: selectorOf(el),
+      rect: rectOf(el),
+    }
+    stop()
+  }
+  const escape = (event) => {
+    if (event.key !== "Escape") return
+    event.preventDefault()
+    window.__ocPickResult = { cancelled: true }
+    stop()
+  }
+  document.addEventListener("mousemove", move, true)
+  document.addEventListener("click", done, true)
+  document.addEventListener("keydown", escape, true)
+  window.__ocPickActive = true
+  window.__ocPickResult = null
+  window.__ocPick = { stop }
+  return true
+})()`
+
+type PickedElement = {
+  cancelled: boolean
+  url?: string
+  title?: string
+  tag?: string
+  role?: string
+  label?: string
+  text?: string
+  selector?: string
+  rect?: { x: number; y: number; width: number; height: number }
+}
 
 type WebviewEvent = {
   url?: string
@@ -39,6 +153,7 @@ type WebviewEvent = {
 export function SessionBrowserTab() {
   const platform = usePlatform()
   const language = useLanguage()
+  const prompt = usePrompt()
   const server = useServer()
   const params = useParams()
 
@@ -56,6 +171,9 @@ export function SessionBrowserTab() {
   const [loading, setLoading] = createSignal(false)
   const [error, setError] = createSignal<string | null>(null)
   const [rewritten, setRewritten] = createSignal(false)
+  const [pickActive, setPickActive] = createSignal(false)
+  let pickTimer: ReturnType<typeof setInterval> | undefined
+  let pickTimeout: ReturnType<typeof setTimeout> | undefined
 
   let webview: WebviewElement | undefined
 
@@ -88,14 +206,65 @@ export function SessionBrowserTab() {
     webview?.reload()
   }
 
+  const stopPick = () => {
+    if (pickTimer) clearInterval(pickTimer)
+    if (pickTimeout) clearTimeout(pickTimeout)
+    pickTimer = undefined
+    pickTimeout = undefined
+    setPickActive(false)
+    void webview?.executeJavaScript("window.__ocPick && window.__ocPick.stop()", true).catch(() => undefined)
+  }
+
+  const finishPick = (result: PickedElement) => {
+    stopPick()
+    if (result.cancelled || !result.selector) return
+    const label = (result.label ?? result.tag ?? "").replace(/\s+/g, " ").trim().slice(0, 28)
+    prompt.context.add({
+      type: "element",
+      path: result.url ?? current(),
+      label,
+      selector: result.selector,
+      element: result.tag,
+      text: (result.text ?? "").slice(0, 300),
+      preview: `${result.tag ?? "element"} ${result.selector}`,
+    })
+    window.dispatchEvent(new Event("opencode:focus-composer"))
+  }
+
+  const startPick = () => {
+    if (!isDesktop() || !webview) return
+    if (!current()) return
+    setPickActive(true)
+    void webview
+      .executeJavaScript(PICK_SCRIPT, true)
+      .then(() => {
+        if (pickTimer) clearInterval(pickTimer)
+        if (pickTimeout) clearTimeout(pickTimeout)
+        pickTimeout = setTimeout(stopPick, 90_000)
+        pickTimer = setInterval(async () => {
+          try {
+            const result = (await webview?.executeJavaScript("window.__ocPickResult", true)) as PickedElement | null
+            if (!result) return
+            finishPick(result)
+          } catch {
+            stopPick()
+          }
+        }, 150)
+      })
+      .catch(() => setPickActive(false))
+  }
+
   const openExternal = () => {
     const url = webview?.getURL() || current()
     if (url && url !== "about:blank") platform.openExternal(url)
   }
 
+  onCleanup(() => stopPick())
+
   const attach = (element: HTMLElement) => {
     const view = element as WebviewElement
     webview = view
+    guardBrowserNavigation(view)
     const key = sessionID()
     onCleanup(() => {
       if (key) unregisterBrowserWebview(key, view)
@@ -188,6 +357,16 @@ export function SessionBrowserTab() {
             {remoteHost()}
           </div>
         </Show>
+        <Tooltip value={language.t("session.browser.pick")} placement="bottom">
+          <IconButton
+            icon="window-cursor"
+            variant="ghost"
+            class="h-7 w-7"
+            classList={{ "bg-surface-interactive-hover": pickActive() }}
+            disabled={!current()}
+            onClick={startPick}
+          />
+        </Tooltip>
         <Tooltip value={language.t("session.browser.openExternal")} placement="bottom">
           <IconButton icon="square-arrow-top-right" variant="ghost" class="h-7 w-7" onClick={openExternal} />
         </Tooltip>
@@ -216,17 +395,11 @@ export function SessionBrowserTab() {
             <div class="absolute inset-x-0 top-0 z-10 h-0.5 animate-pulse bg-text-strong/30" />
           </Show>
 
-          <Show when={error()}>
-            <div class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-background-base px-6 text-center">
-              <Icon name="circle-ban-sign" size="large" class="text-text-weak" />
-              <div class="max-w-80 break-words text-12-regular text-text-base">{error()}</div>
-              <button
-                type="button"
-                class="rounded-md border border-border-weaker-base px-3 py-1.5 text-12-regular text-text-base hover:bg-background-stronger"
-                onClick={reload}
-              >
-                {language.t("session.browser.retry")}
-              </button>
+          <Show when={pickActive()}>
+            <div class="pointer-events-none absolute inset-x-0 top-2 z-30 flex justify-center px-4">
+              <div class="rounded-md bg-text-strong px-3 py-1.5 text-12-regular text-text-invert-base shadow-sm">
+                {language.t("session.browser.pick.hint")}
+              </div>
             </div>
           </Show>
 

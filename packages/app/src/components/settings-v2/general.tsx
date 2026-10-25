@@ -8,8 +8,10 @@ import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { useServer } from "@/context/server"
-import { useSDK } from "@/context/sdk"
+import { useParams } from "@solidjs/router"
+import { decode64 } from "@/utils/base64"
 import { DialogMobileAccess } from "@/components/dialog-mobile-access"
+import { DialogSkills } from "@/components/dialog-skills"
 import { useUpdaterAction } from "../updater-action"
 import { useSettings } from "@/context/settings"
 import { ExternalLink } from "../external-link"
@@ -301,11 +303,29 @@ const FollowupSetting = () => {
   )
 }
 
+const SkillsSetting = () => {
+  const language = useLanguage()
+  const dialog = useDialog()
+  const params = useParams()
+  const open = () => dialog.show(() => <DialogSkills directory={params.dir ? decode64(params.dir) : undefined} />)
+
+  return (
+    <SettingsRowV2
+      title={language.t("settings.general.row.skills.title")}
+      description={language.t("settings.general.row.skills.description")}
+    >
+      <ButtonV2 variant="outline" size="normal" data-action="settings-skills" onClick={open}>
+        {language.t("settings.general.row.skills.action")}
+      </ButtonV2>
+    </SettingsRowV2>
+  )
+}
+
 const MobileAccessSetting = () => {
   const language = useLanguage()
   const platform = usePlatform()
   const dialog = useDialog()
-  const sdk = useSDK()
+  const params = useParams()
   const server = useServer()
 
   const workspaces = () => {
@@ -317,7 +337,7 @@ const MobileAccessSetting = () => {
       const name = directory.split("/").filter(Boolean).pop() ?? directory
       list.push({ directory, name })
     }
-    push(sdk().directory)
+    push(params.dir ? decode64(params.dir) : undefined)
     for (const project of server.projects.list()) push(project.worktree)
     return list
   }
@@ -403,6 +423,8 @@ export const SettingsGeneralV2: Component<{
         <FollowupSetting />
 
         <MobileAccessSetting />
+
+        <SkillsSetting />
 
         <SettingsRowV2
           title={language.t("settings.general.row.reasoningSummaries.title")}

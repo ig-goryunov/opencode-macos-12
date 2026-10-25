@@ -15,6 +15,7 @@ import type { ServerReadyData } from "../preload/types"
 import { checkAppExists, resolveAppPath } from "./apps"
 import { CHANNEL } from "./constants"
 import { registerIpcHandlers, sendDeepLinks, sendMenuCommand } from "./ipc"
+import { worktree } from "./worktree"
 import { forwardInitializationFailure } from "./initialization"
 import { exportDebugLogs, initCrashReporter, initLogging, startNetLog, write as writeLog } from "./logging"
 import { createMenu } from "./menu"
@@ -304,6 +305,7 @@ const main = Effect.gen(function* () {
   }
   app.once("will-quit", () => void stopRemote())
   registerIpcHandlers({
+    worktree,
     killSidecar: () => killSidecar(),
     relaunch,
     awaitInitialization: Effect.fnUntraced(

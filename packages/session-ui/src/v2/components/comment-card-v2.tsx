@@ -1,5 +1,6 @@
 import { createSignal, onCleanup, onMount, Show } from "solid-js"
 import { FileIcon } from "@opencode-ai/ui/file-icon"
+import { Icon } from "@opencode-ai/ui/icon"
 import { getFilenameTruncated } from "@opencode-ai/core/util/path"
 import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
 import { AttachmentCardV2 } from "./attachment-card-v2"
@@ -7,6 +8,8 @@ import { AttachmentCardV2 } from "./attachment-card-v2"
 export function CommentCardV2(props: {
   comment: string
   path: string
+  label?: string
+  element?: string
   selection?: { startLine: number; endLine: number }
   active?: boolean
   title?: string
@@ -39,7 +42,7 @@ export function CommentCardV2(props: {
       contentStyle={{ "max-width": "320px", "white-space": "pre-wrap" }}
     >
       <AttachmentCardV2
-        title={props.comment}
+        title={props.label ?? props.comment}
         active={props.active}
         clickable={!!props.onClick}
         wide={props.wide}
@@ -49,15 +52,24 @@ export function CommentCardV2(props: {
         }}
         onClick={props.onClick}
       >
-        <FileIcon node={{ path: props.path, type: "file" }} />
-        <span>
-          {getFilenameTruncated(props.path, 14)}
-          <Show when={props.selection}>
-            {(sel) =>
-              sel().startLine === sel().endLine ? `:${sel().startLine}` : `:${sel().startLine}-${sel().endLine}`
-            }
-          </Show>
-        </span>
+        {props.label ? (
+          <>
+            <Icon name="window-cursor" size="small" class="shrink-0" />
+            <span class="truncate max-w-[120px]">{props.element ?? "element"}</span>
+          </>
+        ) : (
+          <>
+            <FileIcon node={{ path: props.path, type: "file" }} />
+            <span>
+              {getFilenameTruncated(props.path, 14)}
+              <Show when={props.selection}>
+                {(sel) =>
+                  sel().startLine === sel().endLine ? `:${sel().startLine}` : `:${sel().startLine}-${sel().endLine}`
+                }
+              </Show>
+            </span>
+          </>
+        )}
       </AttachmentCardV2>
     </TooltipV2>
   )

@@ -9,7 +9,7 @@ import { useLanguage } from "@/context/language"
 import { useSettings } from "@/context/settings"
 import { base64Encode } from "@opencode-ai/core/util/encode"
 import { decode64 } from "@/utils/base64"
-import { EventSessionError } from "@opencode-ai/sdk/v2"
+import { type Event, EventSessionError } from "@opencode-ai/sdk/v2"
 import { Persist, persisted } from "@/utils/persist"
 import { playSoundById } from "@/utils/sound"
 import { useGlobal } from "./global"
@@ -36,6 +36,14 @@ type ErrorNotification = NotificationBase & {
 }
 
 export type Notification = TurnCompleteNotification | ErrorNotification
+
+const SILENT = new Set<string>()
+
+/** Keep a throwaway session (e.g. a /btw side question) out of notifications. */
+export function silenceNotifications(sessionID: string) {
+  SILENT.add(sessionID)
+  setTimeout(() => SILENT.delete(sessionID), 120_000)
+}
 
 type NotificationIndex = {
   session: {
@@ -337,6 +345,7 @@ function createServerNotificationState(input: {
 
   const handleSessionIdle = (directory: string, event: { properties: { sessionID?: string } }, time: number) => {
     const sessionID = event.properties.sessionID
+    if (sessionID && SILENT.has(sessionID)) return
     void lookup(directory, sessionID).then((session) => {
       if (meta.disposed) return
       if (!session) return
@@ -369,6 +378,7 @@ function createServerNotificationState(input: {
     time: number,
   ) => {
     const sessionID = event.properties.sessionID
+    if (sessionID && SILENT.has(sessionID)) return
     void lookup(directory, sessionID).then((session) => {
       if (meta.disposed) return
       if (session?.parentID) return
@@ -396,8 +406,36 @@ function createServerNotificationState(input: {
     })
   }
 
+  const seenPermissions = new Set<string>()
+
+  const handlePermission = (directory: string, event: Extract<Event, { type: "permission.asked" }>) => {
+    const requestID = event.properties.id
+    const sessionID = event.properties.sessionID
+    if (!requestID || !sessionID) return
+    if (seenPermissions.has(requestID)) return
+    seenPermissions.add(requestID)
+    if (seenPermissions.size > 200) seenPermissions.clear()
+    if (SILENT.has(sessionID)) return
+    if (!settings.notifications.permissions()) return
+    if (viewedInCurrentSession(directory, sessionID) && document.hasFocus()) return
+    void lookup(directory, sessionID).then((session) => {
+      if (meta.disposed) return
+      if (session?.parentID) return
+      const what = [event.properties.permission, event.properties.patterns.join(", ")].filter(Boolean).join(" ")
+      void platform.notify(
+        language.t("notification.permission.title"),
+        `${session?.title ?? sessionID}${what ? ` — ${what}` : ""}`,
+        () => input.navigate(`/${base64Encode(directory)}/session/${sessionID}`),
+      )
+    })
+  }
+
   const unsub = serverSDK().event.listen((e) => {
     const event = e.details
+    if (event.type === "permission.asked") {
+      handlePermission(e.name, event)
+      return
+    }
     if (event.type !== "session.idle" && event.type !== "session.error") return
 
     const directory = e.name

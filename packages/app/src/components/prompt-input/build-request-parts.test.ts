@@ -393,4 +393,36 @@ describe("buildRequestParts", () => {
       expect(filePart.url).toContain("/..")
     }
   })
+
+  test("element context becomes one synthetic text part and no file part", () => {
+    const result = buildRequestParts({
+      prompt: [],
+      context: [
+        {
+          key: "ctx:e1",
+          type: "element",
+          path: "https://example.com/",
+          label: "Кнопка «Купить»",
+          selector: "#buy",
+          element: "button",
+          text: "Купить",
+          comment: "сделай крупнее",
+        },
+      ],
+      images: [],
+      text: "увеличь её",
+      messageID: "msg_2",
+      sessionID: "ses_2",
+      sessionDirectory: "/repo",
+    })
+
+    const parts = result.requestParts
+    expect(parts.filter((part) => part.type === "file")).toHaveLength(0)
+    const note = parts.find((part) => part.type === "text" && part.synthetic)
+    expect(note?.type).toBe("text")
+    if (note?.type !== "text") throw new Error("missing note")
+    expect(note.text).toContain("Кнопка «Купить»")
+    expect(note.text).toContain("Селектор: #buy")
+    expect(note.text).toContain("Комментарий: сделай крупнее")
+  })
 })

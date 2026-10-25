@@ -414,6 +414,13 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
     })
   }
 
+  const btw = () => {
+    void openDialog(
+      () => import("@/components/dialog-btw"),
+      (x) => dialog.show(() => <x.DialogBtw />),
+    )
+  }
+
   const fork = () => {
     void openDialog(
       () => import("@/components/dialog-fork"),
@@ -482,6 +489,13 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
       slash: "compact",
       disabled: !params.id || visibleUserMessages().length === 0,
       onSelect: compact,
+    }),
+    sessionCommand({
+      id: "session.btw",
+      title: language.t("command.session.btw"),
+      description: language.t("command.session.btw.description"),
+      slash: "btw",
+      onSelect: btw,
     }),
     sessionCommand({
       id: "session.fork",

@@ -36,6 +36,23 @@ const BACKGROUND_LIMIT = 3
 const [background, setBackground] = createSignal<string[]>([])
 
 const HANDLED_TTL = 60_000
+const BACKGROUND_IDLE = 90_000
+const BACKGROUND_SWEEP = 30_000
+const lastUse = new Map<string, number>()
+let sweeper: ReturnType<typeof setInterval> | undefined
+
+function touchBackground(sessionID: string) {
+  lastUse.set(sessionID, Date.now())
+  if (sweeper) return
+  sweeper = setInterval(() => {
+    const now = Date.now()
+    for (const id of background()) {
+      if (now - (lastUse.get(id) ?? 0) < BACKGROUND_IDLE) continue
+      releaseBackgroundWebview(id)
+      lastUse.delete(id)
+    }
+  }, BACKGROUND_SWEEP)
+}
 
 /** Sessions that currently need a hidden webview (for the agent). */
 export function backgroundSessions() {
@@ -63,6 +80,7 @@ export function unregisterBrowserWebview(sessionID: string, view: BrowserWebview
 
 /** Ask BrowserBackgroundHosts to mount a hidden webview for this session. */
 export function ensureBackgroundWebview(sessionID: string) {
+  touchBackground(sessionID)
   if (webviews.has(sessionID)) return
   setBackground((list) => {
     if (list.includes(sessionID)) return list
@@ -72,7 +90,23 @@ export function ensureBackgroundWebview(sessionID: string) {
 }
 
 export function releaseBackgroundWebview(sessionID: string) {
+  lastUse.delete(sessionID)
   setBackground((list) => (list.includes(sessionID) ? list.filter((id) => id !== sessionID) : list))
+}
+
+const SAFE_PROTOCOLS = new Set(["http:", "https:", "about:"])
+
+/** The agent-controlled page must never navigate to file:, data:, javascript: and the like. */
+export function guardBrowserNavigation(view: BrowserWebview) {
+  view.addEventListener("will-navigate", (event) => {
+    const target = (event as unknown as { url?: string }).url ?? ""
+    try {
+      if (SAFE_PROTOCOLS.has(new URL(target).protocol)) return
+    } catch {
+      // fall through: unparsable urls are blocked
+    }
+    event.preventDefault()
+  })
 }
 
 function markHandled(requestID: string) {

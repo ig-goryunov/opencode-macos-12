@@ -397,7 +397,7 @@ export function PromptInputV2Attachments(props: {
             {(comment) => (
               <div class="relative group shrink-0">
                 <TooltipV2
-                  value={comment.comment}
+                  value={comment.comment || comment.selector || comment.path}
                   placement="top"
                   openDelay={800}
                   contentClass="max-w-[300px] break-words"
@@ -405,6 +405,9 @@ export function PromptInputV2Attachments(props: {
                   <CommentCardV2
                     comment={comment.comment ?? ""}
                     path={comment.path}
+                    label={comment.label}
+                    element={comment.element}
+                    title={comment.type === "element" ? comment.selector : undefined}
                     selection={comment.selection}
                     active={comment.key === props.activeCommentID}
                     onClick={() => props.onCommentClick?.(comment)}

@@ -10,13 +10,17 @@ type PromptRequestPart = (TextPartInput | FilePartInput | AgentPartInput) & { id
 
 type ContextFile = {
   key: string
-  type: "file"
+  type: "file" | "element"
   path: string
   selection?: FileSelection
   comment?: string
   commentID?: string
   commentOrigin?: "review" | "file"
   preview?: string
+  label?: string
+  selector?: string
+  element?: string
+  text?: string
 }
 
 type BuildRequestPartsInput = {
@@ -143,7 +147,24 @@ export function buildRequestParts(input: BuildRequestPartsInput) {
   })
 
   const used = new Set(files.map((part) => part.url))
-  const context = input.context.flatMap((item) => {
+  const context = input.context.flatMap((item): PromptRequestPart[] => {
+    if (item.type === "element") {
+      const lines = [
+        `[Элемент страницы] ${item.element ?? "element"}${item.label ? ` «${item.label}»` : ""}`,
+        item.selector ? `Селектор: ${item.selector}` : "",
+        item.path ? `URL: ${item.path}` : "",
+        item.text ? `Текст: ${item.text}` : "",
+        item.comment ? `Комментарий: ${item.comment}` : "",
+      ].filter(Boolean)
+      return [
+        {
+          id: Identifier.ascending("part"),
+          type: "text",
+          text: lines.join("\n"),
+          synthetic: true,
+        } satisfies PromptRequestPart,
+      ]
+    }
     const path = absolute(input.sessionDirectory, item.path)
     const url = `file://${encodeFilePath(path)}${fileQuery(item.selection)}`
     const comment = item.comment?.trim()

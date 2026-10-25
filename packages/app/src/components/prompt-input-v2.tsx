@@ -6,7 +6,7 @@ import { Icon } from "@opencode-ai/ui/v2/icon"
 import { KeybindV2 } from "@opencode-ai/ui/v2/keybind-v2"
 import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
 import type { ReferenceInfo } from "@opencode-ai/sdk/v2/client"
-import { createEffect, createMemo, on, Show } from "solid-js"
+import { createEffect, createMemo, on, onCleanup, onMount, Show } from "solid-js"
 import { ModelSelectorPopoverV2 } from "@/components/dialog-select-model"
 import { DialogSelectModelUnpaidV2 } from "@/components/dialog-select-model-unpaid-v2"
 import type { PromptInputProps } from "@/components/prompt-input/contracts"
@@ -145,6 +145,7 @@ export function usePromptInputV2Controller(props: PromptInputV2ControllerProps):
   const historyComments = () => {
     const byID = new Map(comments.all().map((item) => [`${item.file}\n${item.id}`, item] as const))
     return prompt.context.items().flatMap((item) => {
+      if (item.type !== "file") return []
       const comment = item.comment?.trim()
       if (!comment) return []
       const selection = item.commentID ? byID.get(`${item.path}\n${item.commentID}`)?.selection : undefined
@@ -350,7 +351,8 @@ export function usePromptInputV2Controller(props: PromptInputV2ControllerProps):
       dialog.show(() => <ImagePreview src={attachment.blob.url} alt={attachment.filename} />),
     openContext(key) {
       const item = controller.contextItem(key)
-      if (item) openComment(item, props, sync, layout, files, comments)
+      if (!item || item.type === "element") return
+      openComment(item, props, sync, layout, files, comments)
     },
     onEditor(element) {
       editor = element as HTMLDivElement
@@ -410,6 +412,40 @@ export function usePromptInputV2Controller(props: PromptInputV2ControllerProps):
   })
   Object.defineProperty(controller, "model", { get: () => props.controls.model })
 
+  // The embedded browser picker hands an element to the composer: a text note plus
+  // an optional screenshot of the element, inserted at the current cursor.
+  onMount(() => {
+    const insert = (event: Event) => {
+      const text = (event as CustomEvent<{ text?: string }>).detail?.text
+      if (!text) return
+      controller.addPart({ type: "text", content: text, start: 0, end: 0 })
+      controller.restoreFocus()
+    }
+    const attach = async (event: Event) => {
+      const detail = (event as CustomEvent<{ name?: string; dataUrl?: string }>).detail
+      if (!detail?.dataUrl) return
+      try {
+        const blob = await (await fetch(detail.dataUrl)).blob()
+        await controller.attachFiles([
+          new File([blob], detail.name || "element.png", { type: blob.type || "image/png" }),
+        ])
+      } catch {
+        // the text note is inserted even when the screenshot cannot be attached
+      }
+    }
+    const onInsert = (event: Event) => insert(event)
+    const onAttach = (event: Event) => void attach(event)
+    const focus = () => controller.restoreFocus()
+    window.addEventListener("opencode:insert-text", onInsert)
+    window.addEventListener("opencode:attach-image", onAttach)
+    window.addEventListener("opencode:focus-composer", focus)
+    onCleanup(() => {
+      window.removeEventListener("opencode:insert-text", onInsert)
+      window.removeEventListener("opencode:attach-image", onAttach)
+      window.removeEventListener("opencode:focus-composer", focus)
+    })
+  })
+
   command.register("prompt-input", () => [
     {
       id: "file.attach",
@@ -445,15 +481,27 @@ export function usePromptInputV2Controller(props: PromptInputV2ControllerProps):
         if (!id || !edit) return
         prompt.context.items().forEach((item) => prompt.context.remove(item.key))
         edit.context.forEach((item) =>
-          prompt.context.add({
-            type: item.type,
-            path: item.path,
-            selection: item.selection,
-            comment: item.comment,
-            commentID: item.commentID,
-            commentOrigin: item.commentOrigin,
-            preview: item.preview,
-          }),
+          prompt.context.add(
+            item.type === "element"
+              ? {
+                  type: "element",
+                  path: item.path,
+                  label: item.label,
+                  selector: item.selector,
+                  element: item.element,
+                  text: item.text,
+                  preview: item.preview,
+                }
+              : {
+                  type: "file",
+                  path: item.path,
+                  selection: item.selection,
+                  comment: item.comment,
+                  commentID: item.commentID,
+                  commentOrigin: item.commentOrigin,
+                  preview: item.preview,
+                },
+          ),
         )
         controller.dispatch({ type: "mode.normal" })
         controller.resetHistory()

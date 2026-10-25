@@ -61,7 +61,21 @@ export type FileContextItem = {
   preview?: string
 }
 
-export type ContextItem = FileContextItem
+export type ElementContextItem = {
+  type: "element"
+  path: string
+  label?: string
+  selector?: string
+  element?: string
+  text?: string
+  preview?: string
+  comment?: string
+  selection?: FileSelection
+  commentID?: string
+  commentOrigin?: "review" | "file"
+}
+
+export type ContextItem = FileContextItem | ElementContextItem
 export type PromptScope = { draftID: string } | { dir: string; id?: string }
 
 export const DEFAULT_PROMPT: Prompt = [{ type: "text", content: "", start: 0, end: 0 }]

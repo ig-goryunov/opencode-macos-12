@@ -9,6 +9,7 @@ import {
   createMemo,
   createSignal,
   createResource,
+  onMount,
   Switch,
   Match,
   type JSX,
@@ -1172,6 +1173,35 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     addPart,
     readClipboardImage: platform.readClipboardImage,
     getPathForFile: platform.getPathForFile,
+  })
+
+  // The embedded browser picker hands an element to the composer: a text note plus
+  // an optional screenshot of the element, inserted at the current cursor.
+  onMount(() => {
+    const insert = (event: Event) => {
+      const text = (event as CustomEvent<{ text?: string }>).detail?.text
+      if (!text) return
+      if (!addPart({ type: "text", content: text, start: 0, end: 0 })) return
+      editorRef.focus()
+    }
+    const attach = async (event: Event) => {
+      const detail = (event as CustomEvent<{ name?: string; dataUrl?: string }>).detail
+      if (!detail?.dataUrl) return
+      try {
+        const blob = await (await fetch(detail.dataUrl)).blob()
+        addAttachment(new File([blob], detail.name || "element.png", { type: blob.type || "image/png" }))
+      } catch {
+        // the note is still inserted even when the screenshot fails
+      }
+    }
+    const onInsert = (event: Event) => insert(event)
+    const onAttach = (event: Event) => void attach(event)
+    window.addEventListener("opencode:insert-text", onInsert)
+    window.addEventListener("opencode:attach-image", onAttach)
+    onCleanup(() => {
+      window.removeEventListener("opencode:insert-text", onInsert)
+      window.removeEventListener("opencode:attach-image", onAttach)
+    })
   })
 
   const fileAttachmentInput = () => (

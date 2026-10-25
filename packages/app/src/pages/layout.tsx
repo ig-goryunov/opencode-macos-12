@@ -905,6 +905,13 @@ export default function LegacyLayout(props: ParentProps) {
         onSelect: () => layout.sidebar.toggle(),
       },
       {
+        id: "worktree.open",
+        title: language.t("command.worktree.open"),
+        category: language.t("command.category.project"),
+        disabled: !params.dir,
+        onSelect: openWorktree,
+      },
+      {
         id: "project.open",
         title: language.t("command.project.open"),
         category: language.t("command.category.project"),
@@ -1082,6 +1089,14 @@ export default function LegacyLayout(props: ParentProps) {
 
     return commands
   })
+
+  function openWorktree() {
+    const run = ++dialogRun
+    void import("@/components/dialog-worktree").then((x) => {
+      if (dialogDead || dialogRun !== run) return
+      dialog.show(() => <x.DialogWorktree directory={decode64(params.dir ?? "") ?? ""} />)
+    })
+  }
 
   function connectProvider() {
     const run = ++dialogRun

@@ -30,6 +30,16 @@ export type UpdaterAPI = {
 }
 
 export type RemoteWorkspace = { directory: string; name: string }
+export type WorktreeInfo = { path: string; branch: string; main: boolean }
+export type WorktreeAPI = {
+  list: (directory: string) => Promise<{ ok: boolean; worktrees?: WorktreeInfo[]; error?: string }>
+  create: (
+    directory: string,
+    input: { name: string },
+  ) => Promise<{ ok: boolean; path?: string; branch?: string; error?: string }>
+  remove: (directory: string, path: string) => Promise<{ ok: boolean; error?: string }>
+}
+
 export type RemoteStatus = {
   active: boolean
   url?: string
@@ -63,6 +73,7 @@ export type ElectronAPI = {
   wslServers: WslServersAPI
   updater: UpdaterAPI
   remote: RemoteAPI
+  worktree: WorktreeAPI
   consumeInitialDeepLinks: () => Promise<string[]>
   getDefaultServerUrl: () => Promise<string | null>
   setDefaultServerUrl: (url: string | null) => Promise<void>

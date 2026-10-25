@@ -55,7 +55,7 @@ export type PromptInputV2Selection = {
 }
 
 export type PromptInputV2Comment = {
-  type: "file"
+  type: "file" | "element"
   key: string
   path: string
   selection?: PromptInputV2Selection
@@ -63,6 +63,10 @@ export type PromptInputV2Comment = {
   commentID?: string
   commentOrigin?: "review" | "file"
   preview?: string
+  label?: string
+  selector?: string
+  element?: string
+  text?: string
 }
 
 export type PromptInputV2PersistedState = {
