@@ -58,8 +58,9 @@ const api: ElectronAPI = {
   },
   worktree: {
     list: (directory) => ipcRenderer.invoke("worktree-list", directory),
+    branches: (directory) => ipcRenderer.invoke("worktree-branches", directory),
     create: (directory, input) => ipcRenderer.invoke("worktree-create", directory, input),
-    remove: (directory, path) => ipcRenderer.invoke("worktree-remove", directory, path),
+    remove: (directory, path, options) => ipcRenderer.invoke("worktree-remove", directory, path, options),
   },
   remote: {
     start: (input) => ipcRenderer.invoke("remote-start", input),

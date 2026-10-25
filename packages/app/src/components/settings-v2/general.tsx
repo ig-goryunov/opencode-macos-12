@@ -11,7 +11,6 @@ import { useServer } from "@/context/server"
 import { useParams } from "@solidjs/router"
 import { decode64 } from "@/utils/base64"
 import { DialogMobileAccess } from "@/components/dialog-mobile-access"
-import { DialogSkills } from "@/components/dialog-skills"
 import { useUpdaterAction } from "../updater-action"
 import { useSettings } from "@/context/settings"
 import { ExternalLink } from "../external-link"
@@ -317,25 +316,6 @@ const FollowupSetting = () => {
   )
 }
 
-const SkillsSetting = () => {
-  const language = useLanguage()
-  const dialog = useDialog()
-  const params = useParams()
-  const open = () => dialog.show(() => <DialogSkills directory={params.dir ? decode64(params.dir) : undefined} />)
-
-  return (
-    <SettingsRowV2
-      id="skills"
-      title={language.t("settings.general.row.skills.title")}
-      description={language.t("settings.general.row.skills.description")}
-    >
-      <ButtonV2 variant="outline" size="normal" data-action="settings-skills" onClick={open}>
-        {language.t("settings.general.row.skills.action")}
-      </ButtonV2>
-    </SettingsRowV2>
-  )
-}
-
 const MobileAccessSetting = () => {
   const language = useLanguage()
   const platform = usePlatform()
@@ -440,8 +420,30 @@ export const SettingsGeneralV2: Component<{
 
         <MobileAccessSetting />
 
-        <SkillsSetting />
 
+        <Show when={mobile() && import.meta.env.VITE_OPENCODE_CHANNEL !== "prod"}>
+          <SettingsRowV2
+            id="mobile-titlebar"
+            title={language.t("settings.general.row.mobileTitlebarBottom.title")}
+            description={language.t("settings.general.row.mobileTitlebarBottom.description")}
+          >
+            <div data-action="settings-mobile-titlebar-bottom">
+              <Switch
+                checked={settings.general.mobileTitlebarPosition() === "bottom"}
+                onChange={(checked) => settings.general.setMobileTitlebarPosition(checked ? "bottom" : "top")}
+              />
+            </div>
+          </SettingsRowV2>
+        </Show>
+      </SettingsListV2>
+    </div>
+  )
+
+  const TimelineSection = () => (
+    <div class="settings-v2-section">
+      <h3 class="settings-v2-section-title">{language.t("settings.general.section.timeline")}</h3>
+
+      <SettingsListV2>
         <SettingsRowV2
           id="reasoning-summaries"
           title={language.t("settings.general.row.reasoningSummaries.title")}
@@ -481,20 +483,18 @@ export const SettingsGeneralV2: Component<{
           </div>
         </SettingsRowV2>
 
-        <Show when={mobile() && import.meta.env.VITE_OPENCODE_CHANNEL !== "prod"}>
-          <SettingsRowV2
-            id="mobile-titlebar"
-            title={language.t("settings.general.row.mobileTitlebarBottom.title")}
-            description={language.t("settings.general.row.mobileTitlebarBottom.description")}
-          >
-            <div data-action="settings-mobile-titlebar-bottom">
-              <Switch
-                checked={settings.general.mobileTitlebarPosition() === "bottom"}
-                onChange={(checked) => settings.general.setMobileTitlebarPosition(checked ? "bottom" : "top")}
-              />
-            </div>
-          </SettingsRowV2>
-        </Show>
+        <SettingsRowV2
+          id="collapse-tools"
+          title={language.t("settings.general.row.collapseTools.title")}
+          description={language.t("settings.general.row.collapseTools.description")}
+        >
+          <div data-action="settings-timeline-collapse-tools">
+            <Switch
+              checked={settings.general.timelineCollapseTools()}
+              onChange={(checked) => settings.general.setTimelineCollapseTools(checked)}
+            />
+          </div>
+        </SettingsRowV2>
       </SettingsListV2>
     </div>
   )
@@ -680,6 +680,8 @@ export const SettingsGeneralV2: Component<{
         <NotificationsSection />
 
         <SoundsSection controller={sounds} />
+
+        <TimelineSection />
 
         <Show when={desktop()}>
           <UpdatesSection />

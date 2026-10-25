@@ -32,6 +32,7 @@ export interface Settings {
     showReasoningSummaries: boolean
     shellToolPartsExpanded: boolean
     editToolPartsExpanded: boolean
+    timelineCollapseTools: boolean
     showCustomAgents: boolean
     mobileTitlebarPosition: "top" | "bottom"
     newLayoutDesigns?: boolean
@@ -193,6 +194,7 @@ const defaultSettings: Settings = {
     showReasoningSummaries: false,
     shellToolPartsExpanded: false,
     editToolPartsExpanded: false,
+    timelineCollapseTools: false,
     showCustomAgents: false,
     mobileTitlebarPosition: "top",
   },
@@ -408,6 +410,13 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         ),
         setEditToolPartsExpanded(value: boolean) {
           setStore("general", "editToolPartsExpanded", value)
+        },
+        timelineCollapseTools: withFallback(
+          () => store.general?.timelineCollapseTools,
+          defaultSettings.general.timelineCollapseTools,
+        ),
+        setTimelineCollapseTools(value: boolean) {
+          setStore("general", "timelineCollapseTools", value)
         },
         showCustomAgents,
         setShowCustomAgents(value: boolean) {

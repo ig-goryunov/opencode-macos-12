@@ -1,4 +1,4 @@
-export type SettingsTab = "general" | "shortcuts" | "servers" | "providers" | "models" | "about"
+export type SettingsTab = "general" | "shortcuts" | "servers" | "providers" | "models" | "extensions" | "about"
 
 export type SettingsSearchEntry = {
   /** Matches `data-settings-row` on a settings row; omit for whole-tab entries. */
@@ -6,6 +6,8 @@ export type SettingsSearchEntry = {
   tab: SettingsTab
   titleKey: string
   descriptionKey?: string
+  /** Extra words that should match this row (e.g. the section name). */
+  keywords?: string[]
 }
 
 export const settingsSearchEntries: SettingsSearchEntry[] = [
@@ -52,25 +54,27 @@ export const settingsSearchEntries: SettingsSearchEntry[] = [
     titleKey: "settings.general.row.followup.title",
     descriptionKey: "settings.general.row.followup.description",
   },
-  { id: "skills", tab: "general", titleKey: "settings.general.row.skills.title", descriptionKey: "settings.general.row.skills.description" },
   { id: "mobile", tab: "general", titleKey: "settings.general.row.mobile.title", descriptionKey: "settings.general.row.mobile.description" },
   {
     id: "reasoning-summaries",
     tab: "general",
     titleKey: "settings.general.row.reasoningSummaries.title",
     descriptionKey: "settings.general.row.reasoningSummaries.description",
+    keywords: ["timeline", "таймлайн"],
   },
   {
     id: "shell-parts",
     tab: "general",
     titleKey: "settings.general.row.shellToolPartsExpanded.title",
     descriptionKey: "settings.general.row.shellToolPartsExpanded.description",
+    keywords: ["timeline", "таймлайн"],
   },
   {
     id: "edit-parts",
     tab: "general",
     titleKey: "settings.general.row.editToolPartsExpanded.title",
     descriptionKey: "settings.general.row.editToolPartsExpanded.description",
+    keywords: ["timeline", "таймлайн"],
   },
   {
     id: "mobile-titlebar",
@@ -106,6 +110,13 @@ export const settingsSearchEntries: SettingsSearchEntry[] = [
     descriptionKey: "settings.general.notifications.errors.description",
   },
   {
+    id: "collapse-tools",
+    tab: "general",
+    titleKey: "settings.general.row.collapseTools.title",
+    descriptionKey: "settings.general.row.collapseTools.description",
+    keywords: ["timeline", "таймлайн", "tools", "инструменты"],
+  },
+  {
     id: "release-notes",
     tab: "general",
     titleKey: "settings.general.row.releaseNotes.title",
@@ -118,6 +129,15 @@ export const settingsSearchEntries: SettingsSearchEntry[] = [
   { tab: "servers", titleKey: "status.popover.tab.servers" },
   { tab: "providers", titleKey: "settings.providers.title" },
   { tab: "models", titleKey: "settings.models.title" },
+  { tab: "extensions", titleKey: "settings.tab.extensions" },
+  { tab: "extensions", titleKey: "settings.extensions.mcp.title" },
+  {
+    id: "ext-skills",
+    tab: "extensions",
+    titleKey: "settings.extensions.skills.row.title",
+    descriptionKey: "settings.extensions.skills.row.description",
+  },
+  { tab: "extensions", titleKey: "settings.extensions.plugins.title" },
   { tab: "about", titleKey: "settings.tab.about" },
   { id: "about-update", tab: "about", titleKey: "settings.about.updates.title", descriptionKey: "settings.about.updates.description" },
   { id: "about-logs", tab: "about", titleKey: "settings.about.logs.title", descriptionKey: "settings.about.logs.description" },
@@ -133,6 +153,7 @@ const tabLabels: Record<SettingsTab, string> = {
   servers: "status.popover.tab.servers",
   providers: "settings.providers.title",
   models: "settings.models.title",
+  extensions: "settings.tab.extensions",
   about: "settings.tab.about",
 }
 
@@ -156,7 +177,7 @@ export function searchSettings(
   const matches = entries.flatMap((entry) => {
     const title = t(entry.titleKey)
     const description = entry.descriptionKey ? t(entry.descriptionKey) : ""
-    const haystack = `${title} ${description}`.toLowerCase()
+    const haystack = [title, description, ...(entry.keywords ?? [])].join(" ").toLowerCase()
     if (!haystack.includes(text)) return []
     return [{ entry, title, description }]
   })

@@ -3,18 +3,26 @@ import { useNavigate } from "@solidjs/router"
 import { Button } from "@opencode-ai/ui/button"
 import { Dialog } from "@opencode-ai/ui/dialog"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
+import { SelectV2 } from "@opencode-ai/ui/v2/select-v2"
+import { Switch } from "@opencode-ai/ui/v2/switch-v2"
 import { base64Encode } from "@opencode-ai/core/util/encode"
 import { useLanguage } from "@/context/language"
 import { showToast } from "@/utils/toast"
 
 type WorktreeInfo = { path: string; branch: string; main: boolean }
+type WorktreeBranch = { name: string; current: boolean }
 type WorktreeBridge = {
   list: (directory: string) => Promise<{ ok: boolean; worktrees?: WorktreeInfo[]; error?: string }>
+  branches: (directory: string) => Promise<{ ok: boolean; branches?: WorktreeBranch[]; error?: string }>
   create: (
     directory: string,
-    input: { name: string },
+    input: { name: string; base?: string },
   ) => Promise<{ ok: boolean; path?: string; branch?: string; error?: string }>
-  remove: (directory: string, path: string) => Promise<{ ok: boolean; error?: string }>
+  remove: (
+    directory: string,
+    path: string,
+    options?: { deleteBranch?: boolean },
+  ) => Promise<{ ok: boolean; error?: string }>
 }
 
 const bridge = () => (window as unknown as { api?: { worktree?: WorktreeBridge } }).api?.worktree
@@ -26,8 +34,12 @@ export function DialogWorktree(props: { directory: string }) {
   const directory = props.directory
 
   const [items, setItems] = createSignal<WorktreeInfo[]>([])
+  const [branches, setBranches] = createSignal<WorktreeBranch[]>([])
+  const [base, setBase] = createSignal("")
   const [name, setName] = createSignal("")
   const [busy, setBusy] = createSignal(false)
+  const [openAfter, setOpenAfter] = createSignal(true)
+  const [deleteBranch, setDeleteBranch] = createSignal(true)
   const [error, setError] = createSignal<string>()
   const [pending, setPending] = createSignal<string>()
   let pendingTimer: ReturnType<typeof setTimeout> | undefined
@@ -35,6 +47,8 @@ export function DialogWorktree(props: { directory: string }) {
   const explain = (code?: string) => {
     if (code === "invalid-name") return language.t("dialog.worktree.invalidName")
     if (code === "not-a-worktree") return language.t("dialog.worktree.notAWorktree")
+    if (code === "unknown-base") return language.t("dialog.worktree.unknownBase")
+    if (code === "not-a-repo") return language.t("dialog.worktree.notARepo")
     return code || language.t("dialog.worktree.error")
   }
 
@@ -59,22 +73,46 @@ export function DialogWorktree(props: { directory: string }) {
     setItems((result as { worktrees?: WorktreeInfo[] }).worktrees ?? [])
   }
 
-  onMount(() => void refresh())
+  const loadBranches = async () => {
+    const api = bridge()
+    if (!api) return
+    const result = await api.branches(directory).catch((cause) => ({ ok: false, error: String(cause) }))
+    if (!result.ok) return
+    const list = (result as { branches?: WorktreeBranch[] }).branches ?? []
+    setBranches(list)
+    if (base()) return
+    setBase(list.find((item) => item.current)?.name ?? list[0]?.name ?? "")
+  }
+
+  onMount(() => {
+    void refresh()
+    void loadBranches()
+  })
+  onCleanup(resetPending)
 
   const create = async () => {
     const api = bridge()
     const value = name().trim()
     if (!api || !value || busy()) return
     setBusy(true)
-    const result = await api.create(directory, { name: value }).catch((cause) => ({ ok: false, error: String(cause) }))
+    const result = await api
+      .create(directory, { name: value, base: base() || undefined })
+      .catch((cause) => ({ ok: false, error: String(cause) }))
     setBusy(false)
     if (!result.ok) {
       setError(explain(result.error))
       return
     }
     setName("")
+    setError(undefined)
     showToast({ title: language.t("dialog.worktree.created"), description: (result as { path?: string }).path })
+    const path = (result as { path?: string }).path
+    if (openAfter() && path) {
+      open({ path, branch: (result as { branch?: string }).branch ?? "", main: false })
+      return
+    }
     await refresh()
+    await loadBranches()
   }
 
   const open = (worktree: WorktreeInfo) => {
@@ -93,7 +131,9 @@ export function DialogWorktree(props: { directory: string }) {
     }
     resetPending()
     setBusy(true)
-    const result = await api.remove(directory, worktree.path).catch((cause) => ({ ok: false, error: String(cause) }))
+    const result = await api
+      .remove(directory, worktree.path, { deleteBranch: deleteBranch() })
+      .catch((cause) => ({ ok: false, error: String(cause) }))
     setBusy(false)
     if (!result.ok) {
       setError(explain(result.error))
@@ -101,30 +141,58 @@ export function DialogWorktree(props: { directory: string }) {
     }
     setError(undefined)
     await refresh()
+    await loadBranches()
   }
 
-  onCleanup(resetPending)
-
   return (
-    <Dialog title={language.t("dialog.worktree.title")} description={language.t("dialog.worktree.description")} fit>
+    <Dialog
+      title={language.t("dialog.worktree.title")}
+      description={`${language.t("dialog.worktree.description")} · ${directory || "—"}`}
+      fit
+    >
       <div class="flex max-h-[70vh] flex-col gap-3 overflow-y-auto pl-6 pr-6 pb-4">
-        <div class="flex gap-2">
-          <input
-            type="text"
-            class="h-8 w-full min-w-0 rounded-md border border-border-weaker-base bg-background-base px-2 text-12-regular text-text-strong outline-none placeholder:text-text-weak focus:border-border-focus"
-            placeholder={language.t("dialog.worktree.name")}
-            value={name()}
-            onInput={(event) => setName(event.currentTarget.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault()
-                void create()
-              }
-            }}
-          />
-          <Button variant="primary" size="normal" disabled={busy() || !name().trim()} onClick={() => void create()}>
-            {language.t("dialog.worktree.create")}
-          </Button>
+        <div class="flex flex-col gap-2">
+          <div class="flex gap-2">
+            <input
+              type="text"
+              class="h-8 w-full min-w-0 rounded-md border border-border-weaker-base bg-background-base px-2 text-12-regular text-text-strong outline-none placeholder:text-text-weak focus:border-border-focus"
+              placeholder={language.t("dialog.worktree.name")}
+              value={name()}
+              onInput={(event) => setName(event.currentTarget.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault()
+                  void create()
+                }
+              }}
+            />
+            <Show when={branches().length > 0}>
+              <div class="w-44 shrink-0">
+                <SelectV2
+                  appearance="base"
+                  options={branches()}
+                  current={branches().find((item) => item.name === base())}
+                  value={(item) => item.name}
+                  label={(item) =>
+                    item.current ? `${item.name} (${language.t("dialog.worktree.baseCurrent")})` : item.name
+                  }
+                  onSelect={(item) => item && setBase(item.name)}
+                  gutter={4}
+                />
+              </div>
+            </Show>
+            <Button variant="primary" size="normal" disabled={busy() || !name().trim()} onClick={() => void create()}>
+              {language.t("dialog.worktree.create")}
+            </Button>
+          </div>
+          <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-11-regular text-text-weak">
+            <Switch checked={openAfter()} onChange={setOpenAfter}>
+              {language.t("dialog.worktree.openAfter")}
+            </Switch>
+            <Switch checked={deleteBranch()} onChange={setDeleteBranch}>
+              {language.t("dialog.worktree.deleteBranch")}
+            </Switch>
+          </div>
         </div>
         <Show when={error()}>
           <p class="text-12-regular text-text-critical-base">{error()}</p>

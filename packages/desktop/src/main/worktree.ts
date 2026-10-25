@@ -6,6 +6,7 @@ import { promisify } from "node:util"
 const run = promisify(execFile)
 
 export type WorktreeInfo = { path: string; branch: string; main: boolean }
+export type WorktreeBranch = { name: string; current: boolean }
 export type WorktreeResult = { ok: boolean; error?: string }
 
 export function validWorktreeName(name: string) {
@@ -15,9 +16,12 @@ export function validWorktreeName(name: string) {
 function message(error: unknown) {
   if (error && typeof error === "object" && "stderr" in error) {
     const stderr = String((error as { stderr?: string }).stderr ?? "").trim()
+    if (/not a git repository/i.test(stderr)) return "not-a-repo"
     if (stderr) return stderr
   }
-  return error instanceof Error ? error.message : String(error)
+  const text = error instanceof Error ? error.message : String(error)
+  if (/not a git repository/i.test(text)) return "not-a-repo"
+  return text
 }
 
 async function git(directory: string, args: string[]) {
@@ -48,18 +52,39 @@ export const worktree = {
     }
   },
 
+  async branches(directory: string): Promise<{ ok: boolean; branches?: WorktreeBranch[]; error?: string }> {
+    try {
+      const current = await git(directory, ["rev-parse", "--abbrev-ref", "HEAD"]).catch(() => "")
+      const output = await git(directory, ["for-each-ref", "--format=%(refname:short)", "refs/heads"])
+      const branches = output
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((name) => ({ name, current: name === current }))
+      return { ok: true, branches }
+    } catch (error) {
+      return { ok: false, error: message(error) }
+    }
+  },
+
   async create(
     directory: string,
-    input: { name: string },
+    input: { name: string; base?: string },
   ): Promise<{ ok: boolean; path?: string; branch?: string; error?: string }> {
     try {
       const root = await git(directory, ["rev-parse", "--show-toplevel"])
       const name = (input.name ?? "").trim()
       if (!validWorktreeName(name)) return { ok: false, error: "invalid-name" }
+      const base = (input.base ?? "").trim() || "HEAD"
+      if (base !== "HEAD") {
+        const list = await git(root, ["for-each-ref", "--format=%(refname:short)", "refs/heads"])
+        const known = list.split("\n").map((line) => line.trim())
+        if (!known.includes(base)) return { ok: false, error: "unknown-base" }
+      }
       const path = join(root, ".worktrees", name)
       const branch = `worktree-${name}`
       try {
-        await git(root, ["worktree", "add", "-b", branch, path, "HEAD"])
+        await git(root, ["worktree", "add", "-b", branch, path, base])
       } catch (error) {
         if (!/already exists/i.test(message(error))) throw error
         await git(root, ["worktree", "add", path, branch])
@@ -76,14 +101,17 @@ export const worktree = {
     }
   },
 
-  async remove(directory: string, path: string): Promise<WorktreeResult> {
+  async remove(directory: string, path: string, options?: { deleteBranch?: boolean }): Promise<WorktreeResult> {
     try {
       if (!path) return { ok: false, error: "missing-path" }
       const listed = await worktree.list(directory)
       if (!listed.ok || !listed.worktrees) return { ok: false, error: listed.error ?? "list-failed" }
-      const known = listed.worktrees.some((item) => !item.main && item.path === path)
-      if (!known) return { ok: false, error: "not-a-worktree" }
+      const entry = listed.worktrees.find((item) => !item.main && item.path === path)
+      if (!entry) return { ok: false, error: "not-a-worktree" }
       await git(directory, ["worktree", "remove", path])
+      if (options?.deleteBranch && entry.branch.startsWith("worktree-")) {
+        await git(directory, ["branch", "-D", "--", entry.branch]).catch(() => undefined)
+      }
       return { ok: true }
     } catch (error) {
       return { ok: false, error: message(error) }

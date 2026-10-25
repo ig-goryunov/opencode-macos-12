@@ -31,13 +31,19 @@ export type UpdaterAPI = {
 
 export type RemoteWorkspace = { directory: string; name: string }
 export type WorktreeInfo = { path: string; branch: string; main: boolean }
+export type WorktreeBranch = { name: string; current: boolean }
 export type WorktreeAPI = {
   list: (directory: string) => Promise<{ ok: boolean; worktrees?: WorktreeInfo[]; error?: string }>
+  branches: (directory: string) => Promise<{ ok: boolean; branches?: WorktreeBranch[]; error?: string }>
   create: (
     directory: string,
-    input: { name: string },
+    input: { name: string; base?: string },
   ) => Promise<{ ok: boolean; path?: string; branch?: string; error?: string }>
-  remove: (directory: string, path: string) => Promise<{ ok: boolean; error?: string }>
+  remove: (
+    directory: string,
+    path: string,
+    options?: { deleteBranch?: boolean },
+  ) => Promise<{ ok: boolean; error?: string }>
 }
 
 export type RemoteStatus = {

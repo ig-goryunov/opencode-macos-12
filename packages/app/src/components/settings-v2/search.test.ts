@@ -43,6 +43,11 @@ describe("searchSettings", () => {
     expect(ids).toContain("notif-errors")
   })
 
+  test("matches extra keywords such as the section name", () => {
+    const results = searchSettings("таймлайн", tRu)
+    expect(results.map((result) => result.entry.id)).toContain("collapse-tools")
+  })
+
   test("finds whole tabs", () => {
     const results = searchSettings("models", tEn)
     expect(results.some((result) => result.entry.tab === "models" && !result.entry.id)).toBe(true)

@@ -414,6 +414,16 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
     })
   }
 
+  const worktree = () => {
+    const sessionID = params.id
+    const directory = sdk().directory || (sessionID ? sync().session.get(sessionID)?.directory : undefined)
+    if (!directory) return
+    void openDialog(
+      () => import("@/components/dialog-worktree"),
+      (x) => dialog.show(() => <x.DialogWorktree directory={directory} />),
+    )
+  }
+
   const btw = () => {
     void openDialog(
       () => import("@/components/dialog-btw"),
@@ -489,6 +499,12 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
       slash: "compact",
       disabled: !params.id || visibleUserMessages().length === 0,
       onSelect: compact,
+    }),
+    sessionCommand({
+      id: "session.worktree",
+      title: language.t("command.worktree.open"),
+      disabled: !settings.general.newLayoutDesigns(),
+      onSelect: worktree,
     }),
     sessionCommand({
       id: "session.btw",

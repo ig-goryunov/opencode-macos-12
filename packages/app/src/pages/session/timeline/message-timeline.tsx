@@ -1013,7 +1013,12 @@ export function MessageTimeline(props: {
     const defaultOpen = createMemo(() => {
       const item = part()
       if (!item) return
-      return partDefaultOpen(item, settings.general.shellToolPartsExpanded(), settings.general.editToolPartsExpanded())
+      const collapse = settings.general.timelineCollapseTools()
+      return partDefaultOpen(
+        item,
+        !collapse && settings.general.shellToolPartsExpanded(),
+        !collapse && settings.general.editToolPartsExpanded(),
+      )
     })
 
     return (

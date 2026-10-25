@@ -66,13 +66,18 @@ export function registerIpcHandlers(deps: Deps) {
 
   ipcMain.handle("kill-sidecar", () => deps.killSidecar())
   ipcMain.handle("worktree-list", (_event: IpcMainInvokeEvent, directory: string) => deps.worktree.list(directory))
+  ipcMain.handle("worktree-branches", (_event: IpcMainInvokeEvent, directory: string) =>
+    deps.worktree.branches(directory),
+  )
   ipcMain.handle(
     "worktree-create",
-    (_event: IpcMainInvokeEvent, directory: string, input: { name: string }) =>
+    (_event: IpcMainInvokeEvent, directory: string, input: { name: string; base?: string }) =>
       deps.worktree.create(directory, input),
   )
-  ipcMain.handle("worktree-remove", (_event: IpcMainInvokeEvent, directory: string, path: string) =>
-    deps.worktree.remove(directory, path),
+  ipcMain.handle(
+    "worktree-remove",
+    (_event: IpcMainInvokeEvent, directory: string, path: string, options?: { deleteBranch?: boolean }) =>
+      deps.worktree.remove(directory, path, options),
   )
   ipcMain.handle("remote-start", (_event: IpcMainInvokeEvent, input: unknown) => {
     const raw = (input as { workspaces?: unknown } | undefined)?.workspaces

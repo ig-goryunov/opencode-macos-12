@@ -14,6 +14,7 @@ import {
 import { makeEventListener } from "@solid-primitives/event-listener"
 import { useNavigate, useParams } from "@solidjs/router"
 import { useLayout, LocalProject } from "@/context/layout"
+import { useTabs } from "@/context/tabs"
 import { useServerSync } from "@/context/server-sync"
 import { Persist, persisted } from "@/utils/persist"
 import { base64Encode } from "@opencode-ai/core/util/encode"
@@ -144,6 +145,18 @@ export default function LegacyLayout(props: ParentProps) {
   }
   const colorSchemeLabel = (scheme: ColorScheme) => language.t(colorSchemeKey[scheme])
   const currentDir = createMemo(() => route().dir)
+  const tabs = useTabs()
+  const worktreeDir = createMemo(() => {
+    const value = layout.route()
+    const legacy = params.dir ? decode64(params.dir) : undefined
+    if (value.type === "dir-new-sesssion") return value.dir || legacy
+    if (value.type === "session") return legacy || serverSync().session.get(value.sessionId)?.directory
+    if (value.type === "draft") {
+      const draft = tabs.store.find((item) => item.type === "draft" && item.draftID === value.draftID)
+      return draft?.type === "draft" ? draft.directory : undefined
+    }
+    return legacy
+  })
 
   const [state, setState] = createStore({
     autoselect: !initialDirectory,
@@ -908,7 +921,7 @@ export default function LegacyLayout(props: ParentProps) {
         id: "worktree.open",
         title: language.t("command.worktree.open"),
         category: language.t("command.category.project"),
-        disabled: !params.dir,
+        disabled: !worktreeDir(),
         onSelect: openWorktree,
       },
       {
@@ -1094,7 +1107,7 @@ export default function LegacyLayout(props: ParentProps) {
     const run = ++dialogRun
     void import("@/components/dialog-worktree").then((x) => {
       if (dialogDead || dialogRun !== run) return
-      dialog.show(() => <x.DialogWorktree directory={decode64(params.dir ?? "") ?? ""} />)
+      dialog.show(() => <x.DialogWorktree directory={worktreeDir() ?? ""} />)
     })
   }
 

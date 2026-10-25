@@ -12,6 +12,7 @@ import { SettingsModelsV2 } from "./models"
 import "./settings-v2.css"
 import { SettingsServersV2 } from "./servers"
 import { SettingsAboutV2 } from "./about"
+import { SettingsExtensionsV2 } from "./extensions"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useLayout } from "@/context/layout"
 import { useTabs } from "@/context/tabs"
@@ -178,6 +179,10 @@ export const DialogSettings: Component<{
                           <Icon name="models" />
                           {language.t("settings.models.title")}
                         </TabsV2.Trigger>
+                        <TabsV2.Trigger value="extensions">
+                          <Icon name="mcp" />
+                          {language.t("settings.tab.extensions")}
+                        </TabsV2.Trigger>
                       </div>
                     </div>
 
@@ -214,6 +219,9 @@ export const DialogSettings: Component<{
         </TabsV2.Content>
         <TabsV2.Content value="models" class="settings-v2-panel">
           <SettingsModelsV2 />
+        </TabsV2.Content>
+        <TabsV2.Content value="extensions" class="settings-v2-panel">
+          <SettingsExtensionsV2 />
         </TabsV2.Content>
         <TabsV2.Content value="about" class="settings-v2-panel">
           <SettingsAboutV2 />
