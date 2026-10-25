@@ -1,4 +1,4 @@
-import { checksum } from "@opencode-ai/core/util/encode"
+import { contextItemKey } from "./prompt-context-key"
 import type { FilePartSource } from "@opencode-ai/sdk/v2/client"
 import { batch, createMemo, type Accessor } from "solid-js"
 import { createStore, type SetStoreFunction } from "solid-js/store"
@@ -146,19 +146,6 @@ function clonePart(part: ContentPart): ContentPart {
 
 function clonePrompt(prompt: Prompt): Prompt {
   return prompt.map(clonePart)
-}
-
-function contextItemKey(item: ContextItem) {
-  if (item.type !== "file") return item.type
-  const start = item.selection?.startLine
-  const end = item.selection?.endLine
-  const key = `${item.type}:${item.path}:${start}:${end}`
-
-  if (item.commentID) return `${key}:c=${item.commentID}`
-  const comment = item.comment?.trim()
-  if (!comment) return key
-  const digest = checksum(comment) ?? comment
-  return `${key}:c=${digest.slice(0, 8)}`
 }
 
 export function isCommentItem(item: ContextItem | (ContextItem & { key: string })) {

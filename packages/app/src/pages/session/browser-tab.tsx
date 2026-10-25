@@ -206,16 +206,21 @@ export function SessionBrowserTab() {
     webview?.reload()
   }
 
+  let escapePick: ((event: KeyboardEvent) => void) | undefined
+
   const stopPick = () => {
     if (pickTimer) clearInterval(pickTimer)
     if (pickTimeout) clearTimeout(pickTimeout)
+    if (escapePick) window.removeEventListener("keydown", escapePick, true)
     pickTimer = undefined
     pickTimeout = undefined
+    escapePick = undefined
     setPickActive(false)
     void webview?.executeJavaScript("window.__ocPick && window.__ocPick.stop()", true).catch(() => undefined)
   }
 
   const finishPick = (result: PickedElement) => {
+    if (!pickActive()) return
     stopPick()
     if (result.cancelled || !result.selector) return
     const label = (result.label ?? result.tag ?? "").replace(/\s+/g, " ").trim().slice(0, 28)
@@ -235,6 +240,12 @@ export function SessionBrowserTab() {
     if (!isDesktop() || !webview) return
     if (!current()) return
     setPickActive(true)
+    escapePick = (event) => {
+      if (event.key !== "Escape") return
+      event.preventDefault()
+      stopPick()
+    }
+    window.addEventListener("keydown", escapePick, true)
     void webview
       .executeJavaScript(PICK_SCRIPT, true)
       .then(() => {
@@ -245,6 +256,7 @@ export function SessionBrowserTab() {
           try {
             const result = (await webview?.executeJavaScript("window.__ocPickResult", true)) as PickedElement | null
             if (!result) return
+            await webview?.executeJavaScript("window.__ocPickResult = null", true).catch(() => undefined)
             finishPick(result)
           } catch {
             stopPick()
@@ -357,14 +369,17 @@ export function SessionBrowserTab() {
             {remoteHost()}
           </div>
         </Show>
-        <Tooltip value={language.t("session.browser.pick")} placement="bottom">
+        <Tooltip
+          value={language.t(pickActive() ? "session.browser.pick.cancel" : "session.browser.pick")}
+          placement="bottom"
+        >
           <IconButton
             icon="window-cursor"
             variant="ghost"
             class="h-7 w-7"
             classList={{ "bg-surface-interactive-hover": pickActive() }}
             disabled={!current()}
-            onClick={startPick}
+            onClick={() => (pickActive() ? stopPick() : startPick())}
           />
         </Tooltip>
         <Tooltip value={language.t("session.browser.openExternal")} placement="bottom">
