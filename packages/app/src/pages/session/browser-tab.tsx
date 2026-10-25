@@ -208,6 +208,16 @@ export function SessionBrowserTab() {
 
   let escapePick: ((event: KeyboardEvent) => void) | undefined
 
+  // The <webview> tag only gets its methods once Electron upgrades the custom
+  // element, and they disappear again after detach. Calling them too early used
+  // to throw "executeJavaScript is not a function" from cleanup and from the
+  // very first click after the panel opened.
+  const exec = async (code: string): Promise<unknown> => {
+    const view = webview
+    if (!view || typeof view.executeJavaScript !== "function") return undefined
+    return view.executeJavaScript(code, true).catch(() => undefined)
+  }
+
   const stopPick = () => {
     if (pickTimer) clearInterval(pickTimer)
     if (pickTimeout) clearTimeout(pickTimeout)
@@ -216,7 +226,7 @@ export function SessionBrowserTab() {
     pickTimeout = undefined
     escapePick = undefined
     setPickActive(false)
-    void webview?.executeJavaScript("window.__ocPick && window.__ocPick.stop()", true).catch(() => undefined)
+    void exec("window.__ocPick && window.__ocPick.stop()")
   }
 
   const finishPick = (result: PickedElement) => {
@@ -238,6 +248,7 @@ export function SessionBrowserTab() {
 
   const startPick = () => {
     if (!isDesktop() || !webview) return
+    if (typeof webview.executeJavaScript !== "function") return
     if (!current()) return
     setPickActive(true)
     escapePick = (event) => {
@@ -246,24 +257,27 @@ export function SessionBrowserTab() {
       stopPick()
     }
     window.addEventListener("keydown", escapePick, true)
-    void webview
-      .executeJavaScript(PICK_SCRIPT, true)
-      .then(() => {
+    void exec(PICK_SCRIPT)
+      .then((applied) => {
+        if (!applied) {
+          stopPick()
+          return
+        }
         if (pickTimer) clearInterval(pickTimer)
         if (pickTimeout) clearTimeout(pickTimeout)
         pickTimeout = setTimeout(stopPick, 90_000)
         pickTimer = setInterval(async () => {
           try {
-            const result = (await webview?.executeJavaScript("window.__ocPickResult", true)) as PickedElement | null
+            const result = (await exec("window.__ocPickResult")) as PickedElement | null
             if (!result) return
-            await webview?.executeJavaScript("window.__ocPickResult = null", true).catch(() => undefined)
+            await exec("window.__ocPickResult = null")
             finishPick(result)
           } catch {
             stopPick()
           }
         }, 150)
       })
-      .catch(() => setPickActive(false))
+      .catch(() => stopPick())
   }
 
   const openExternal = () => {

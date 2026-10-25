@@ -195,6 +195,10 @@ export function useBrowserBridge() {
       await reply(command.requestID, { ok: false, error: "the browser view did not open" })
       return
     }
+    if (typeof webview.executeJavaScript !== "function") {
+      await reply(command.requestID, { ok: false, error: "the browser view is not ready yet" })
+      return
+    }
 
     try {
       if (command.action === "open") {
