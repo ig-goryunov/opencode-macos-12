@@ -78,6 +78,7 @@ const PermissionScopeSetting: Component<{ controller: PermissionScopeController 
   const language = useLanguage()
   return (
     <SettingsRowV2
+      id="permissions-autoaccept"
       title={language.t("command.permissions.autoaccept.enable")}
       description={language.t("toast.permissions.autoaccept.on.description")}
     >
@@ -102,6 +103,7 @@ const ShellSetting: Component<{ controller: ShellSettingsController }> = (props)
   )
   return (
     <SettingsRowV2
+      id="shell"
       title={language.t("settings.general.row.shell.title")}
       description={language.t("settings.general.row.shell.description")}
     >
@@ -131,6 +133,7 @@ const AppearanceSection: Component<{ controller: AppearanceSettingsController }>
       <h3 class="settings-v2-section-title">{language.t("settings.general.section.appearance")}</h3>
       <SettingsListV2>
         <SettingsRowV2
+          id="color-scheme"
           title={language.t("settings.general.row.colorScheme.title")}
           description={language.t("settings.general.row.colorScheme.description")}
         >
@@ -151,6 +154,7 @@ const AppearanceSection: Component<{ controller: AppearanceSettingsController }>
         </SettingsRowV2>
 
         <SettingsRowV2
+          id="theme"
           title={language.t("settings.general.row.theme.title")}
           description={
             <>
@@ -189,7 +193,11 @@ const FontSetting: Component<{
   const language = useLanguage()
   const config = () => fontSettings[props.kind]
   return (
-    <SettingsRowV2 title={language.t(config().title)} description={language.t(config().description)}>
+    <SettingsRowV2
+      id={`font-${props.kind}`}
+      title={language.t(config().title)}
+      description={language.t(config().description)}
+    >
       <div class="w-full sm:w-[220px]">
         <TextInputV2
           data-action={config().action}
@@ -231,7 +239,11 @@ const SoundSetting: Component<{
   const language = useLanguage()
   const config = () => soundSettings[props.kind]
   return (
-    <SettingsRowV2 title={language.t(config().title)} description={language.t(config().description)}>
+    <SettingsRowV2
+      id={`sound-${props.kind}`}
+      title={language.t(config().title)}
+      description={language.t(config().description)}
+    >
       <SelectV2
         appearance="inline"
         data-action={config().action}
@@ -258,6 +270,7 @@ const LanguageSetting = () => {
   )
   return (
     <SettingsRowV2
+      id="language"
       title={language.t("settings.general.row.language.title")}
       description={language.t("settings.general.row.language.description")}
     >
@@ -285,6 +298,7 @@ const FollowupSetting = () => {
   ])
   return (
     <SettingsRowV2
+      id="followup"
       title={language.t("settings.general.row.followup.title")}
       description={language.t("settings.general.row.followup.description")}
     >
@@ -311,6 +325,7 @@ const SkillsSetting = () => {
 
   return (
     <SettingsRowV2
+      id="skills"
       title={language.t("settings.general.row.skills.title")}
       description={language.t("settings.general.row.skills.description")}
     >
@@ -347,6 +362,7 @@ const MobileAccessSetting = () => {
   return (
     <Show when={platform.platform === "desktop"}>
       <SettingsRowV2
+        id="mobile"
         title={language.t("settings.general.row.mobile.title")}
         description={language.t("settings.general.row.mobile.description")}
       >
@@ -427,6 +443,7 @@ export const SettingsGeneralV2: Component<{
         <SkillsSetting />
 
         <SettingsRowV2
+          id="reasoning-summaries"
           title={language.t("settings.general.row.reasoningSummaries.title")}
           description={language.t("settings.general.row.reasoningSummaries.description")}
         >
@@ -439,6 +456,7 @@ export const SettingsGeneralV2: Component<{
         </SettingsRowV2>
 
         <SettingsRowV2
+          id="shell-parts"
           title={language.t("settings.general.row.shellToolPartsExpanded.title")}
           description={language.t("settings.general.row.shellToolPartsExpanded.description")}
         >
@@ -451,6 +469,7 @@ export const SettingsGeneralV2: Component<{
         </SettingsRowV2>
 
         <SettingsRowV2
+          id="edit-parts"
           title={language.t("settings.general.row.editToolPartsExpanded.title")}
           description={language.t("settings.general.row.editToolPartsExpanded.description")}
         >
@@ -464,6 +483,7 @@ export const SettingsGeneralV2: Component<{
 
         <Show when={mobile() && import.meta.env.VITE_OPENCODE_CHANNEL !== "prod"}>
           <SettingsRowV2
+            id="mobile-titlebar"
             title={language.t("settings.general.row.mobileTitlebarBottom.title")}
             description={language.t("settings.general.row.mobileTitlebarBottom.description")}
           >
@@ -485,6 +505,7 @@ export const SettingsGeneralV2: Component<{
 
       <SettingsListV2>
         <SettingsRowV2
+          id="file-tree"
           title={language.t("settings.general.row.showFileTree.title")}
           description={language.t("settings.general.row.showFileTree.description")}
         >
@@ -497,6 +518,7 @@ export const SettingsGeneralV2: Component<{
         </SettingsRowV2>
 
         <SettingsRowV2
+          id="show-search"
           title={language.t("settings.general.row.showSearch.title")}
           description={language.t("settings.general.row.showSearch.description")}
         >
@@ -509,6 +531,7 @@ export const SettingsGeneralV2: Component<{
         </SettingsRowV2>
 
         <SettingsRowV2
+          id="show-status"
           title={language.t("settings.general.row.showStatus.title")}
           description={language.t("settings.general.row.showStatus.description")}
         >
@@ -521,6 +544,7 @@ export const SettingsGeneralV2: Component<{
         </SettingsRowV2>
 
         <SettingsRowV2
+          id="custom-agents"
           title={language.t("settings.general.row.showCustomAgents.title")}
           description={language.t("settings.general.row.showCustomAgents.description")}
         >
@@ -541,6 +565,7 @@ export const SettingsGeneralV2: Component<{
 
       <SettingsListV2>
         <SettingsRowV2
+          id="notif-agent"
           title={language.t("settings.general.notifications.agent.title")}
           description={language.t("settings.general.notifications.agent.description")}
         >
@@ -553,6 +578,7 @@ export const SettingsGeneralV2: Component<{
         </SettingsRowV2>
 
         <SettingsRowV2
+          id="notif-permissions"
           title={language.t("settings.general.notifications.permissions.title")}
           description={language.t("settings.general.notifications.permissions.description")}
         >
@@ -565,6 +591,7 @@ export const SettingsGeneralV2: Component<{
         </SettingsRowV2>
 
         <SettingsRowV2
+          id="notif-errors"
           title={language.t("settings.general.notifications.errors.title")}
           description={language.t("settings.general.notifications.errors.description")}
         >
@@ -585,6 +612,7 @@ export const SettingsGeneralV2: Component<{
 
       <SettingsListV2>
         <SettingsRowV2
+          id="release-notes"
           title={language.t("settings.general.row.releaseNotes.title")}
           description={language.t("settings.general.row.releaseNotes.description")}
         >
@@ -597,6 +625,7 @@ export const SettingsGeneralV2: Component<{
         </SettingsRowV2>
 
         <SettingsRowV2
+          id="update-check"
           title={language.t("settings.updates.row.check.title")}
           description={language.t("settings.updates.row.check.description")}
         >
@@ -616,6 +645,7 @@ export const SettingsGeneralV2: Component<{
 
         <SettingsListV2>
           <SettingsRowV2
+            id="pinch-zoom"
             title={language.t("settings.general.row.pinchZoom.title")}
             description={language.t("settings.general.row.pinchZoom.description")}
           >

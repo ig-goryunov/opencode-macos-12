@@ -1,5 +1,6 @@
 import { useFilteredList } from "@opencode-ai/ui/hooks"
 import { ProviderIcon } from "@opencode-ai/ui/provider-icon"
+import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { Switch } from "@opencode-ai/ui/v2/switch-v2"
 import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
 import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
@@ -53,7 +54,17 @@ export const SettingsModelsV2: Component = () => {
   return (
     <>
       <div class="settings-v2-tab-header settings-v2-tab-header--stacked">
-        <h2 class="settings-v2-tab-title">{language.t("settings.models.title")}</h2>
+        <div class="settings-v2-tab-header-row">
+          <h2 class="settings-v2-tab-title">{language.t("settings.models.title")}</h2>
+          <div class="settings-v2-models-actions">
+            <ButtonV2 variant="ghost" size="small" onClick={() => models.setVisibilityAll(false)}>
+              {language.t("settings.models.disableAll")}
+            </ButtonV2>
+            <ButtonV2 variant="outline" size="small" onClick={() => models.setVisibilityAll(true)}>
+              {language.t("settings.models.enableAll")}
+            </ButtonV2>
+          </div>
+        </div>
         <div class="settings-v2-tab-search">
           <TextInputV2
             type="search"

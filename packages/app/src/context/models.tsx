@@ -4,6 +4,7 @@ import { filter, firstBy, flat, groupBy, mapValues, pipe, uniqueBy, values } fro
 import { createSimpleContext } from "@opencode-ai/ui/context"
 import { useProviders } from "@/hooks/use-providers"
 import { Persist, persisted } from "@/utils/persist"
+import { applyVisibilityAll } from "./model-visibility"
 
 export type ModelKey = { providerID: string; modelID: string }
 
@@ -131,6 +132,11 @@ export const { use: useModels, provider: ModelsProvider } = createSimpleContext(
       update(model, state ? "show" : "hide")
     }
 
+    const setVisibilityAll = (state: boolean) => {
+      const models = available().map((model) => ({ providerID: model.provider.id, modelID: model.id }))
+      setStore("user", (current) => applyVisibilityAll(current, models, state ? "show" : "hide"))
+    }
+
     const push = (model: ModelKey) => {
       const uniq = uniqueBy([model, ...store.recent], (x) => `${x.providerID}:${x.modelID}`)
       if (uniq.length > RECENT_LIMIT) uniq.pop()
@@ -164,6 +170,7 @@ export const { use: useModels, provider: ModelsProvider } = createSimpleContext(
       find,
       visible,
       setVisibility,
+      setVisibilityAll,
       recent: {
         list: () => recentModels()!,
         push,
