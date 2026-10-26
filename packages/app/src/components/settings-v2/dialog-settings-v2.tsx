@@ -221,7 +221,7 @@ export const DialogSettings: Component<{
           <SettingsModelsV2 />
         </TabsV2.Content>
         <TabsV2.Content value="extensions" class="settings-v2-panel">
-          <SettingsExtensionsV2 />
+          <SettingsExtensionsV2 directory={directory()} />
         </TabsV2.Content>
         <TabsV2.Content value="about" class="settings-v2-panel">
           <SettingsAboutV2 />

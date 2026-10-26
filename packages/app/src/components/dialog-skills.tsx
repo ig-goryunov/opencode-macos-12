@@ -24,7 +24,7 @@ export function DialogSkills(props: { directory?: string }) {
       headers.Authorization = `Basic ${btoa(`${conn.http.username ?? "opencode"}:${conn.http.password}`)}`
     }
     const url = `${conn.http.url}/skill${directory ? `?directory=${encodeURIComponent(directory)}` : ""}`
-    const response = await fetch(url, { headers, credentials: "include" })
+    const response = await fetch(url, { headers })
     if (!response.ok) throw new Error(`${response.status} ${response.statusText}`)
     return (await response.json()) as SkillInfo[]
   })
