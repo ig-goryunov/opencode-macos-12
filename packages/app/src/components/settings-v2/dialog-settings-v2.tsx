@@ -6,6 +6,10 @@ import { Icon } from "@opencode-ai/ui/icon"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { SettingsGeneralV2 } from "./general"
+import { SettingsAppearanceV2 } from "./appearance"
+import { SettingsNotificationsV2 } from "./notifications"
+import { SettingsExperimentalV2 } from "./experimental"
+import { SettingsProjectsV2 } from "./projects"
 import { SettingsKeybinds } from "../settings-keybinds"
 import { SettingsProvidersV2 } from "./providers"
 import { SettingsModelsV2 } from "./models"
@@ -157,6 +161,14 @@ export const DialogSettings: Component<{
                           <Icon name="sliders" />
                           {language.t("settings.tab.general")}
                         </TabsV2.Trigger>
+                        <TabsV2.Trigger value="appearance">
+                          <Icon name="photo" />
+                          {language.t("settings.general.section.appearance")}
+                        </TabsV2.Trigger>
+                        <TabsV2.Trigger value="notifications">
+                          <Icon name="speech-bubble" />
+                          {language.t("settings.tab.notifications")}
+                        </TabsV2.Trigger>
                         <TabsV2.Trigger value="shortcuts">
                           <Icon name="keyboard" />
                           {language.t("settings.tab.shortcuts")}
@@ -189,6 +201,14 @@ export const DialogSettings: Component<{
                     <div class="flex flex-col gap-1.5">
                       <TabsV2.SectionTitle>{language.t("settings.section.app")}</TabsV2.SectionTitle>
                       <div class="flex flex-col gap-1.5 w-full">
+                        <TabsV2.Trigger value="projects">
+                          <Icon name="folder" />
+                          {language.t("settings.tab.projects")}
+                        </TabsV2.Trigger>
+                        <TabsV2.Trigger value="experimental">
+                          <Icon name="glasses" />
+                          {language.t("settings.tab.experimental")}
+                        </TabsV2.Trigger>
                         <TabsV2.Trigger value="about">
                           <Icon name="help" />
                           {language.t("settings.tab.about")}
@@ -207,6 +227,18 @@ export const DialogSettings: Component<{
         </TabsV2.List>
         <TabsV2.Content value="general" class="settings-v2-panel">
           <SettingsGeneralV2 sessionID={props.sessionID} />
+        </TabsV2.Content>
+        <TabsV2.Content value="appearance" class="settings-v2-panel">
+          <SettingsAppearanceV2 />
+        </TabsV2.Content>
+        <TabsV2.Content value="notifications" class="settings-v2-panel">
+          <SettingsNotificationsV2 />
+        </TabsV2.Content>
+        <TabsV2.Content value="projects" class="settings-v2-panel">
+          <SettingsProjectsV2 directory={directory()} />
+        </TabsV2.Content>
+        <TabsV2.Content value="experimental" class="settings-v2-panel">
+          <SettingsExperimentalV2 />
         </TabsV2.Content>
         <TabsV2.Content value="shortcuts" class="settings-v2-panel">
           <SettingsKeybinds v2 />

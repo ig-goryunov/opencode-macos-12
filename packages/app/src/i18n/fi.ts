@@ -1175,4 +1175,14 @@ export const dict = {
   "help.tabs.persistence": "Kun avaat sovelluksen uudelleen, välilehtesi ovat yhä avoinna.",
   "help.tabs.worktrees":
     "Uusi ulkoasu ei vielä tue Git-työpuita, mutta tuki on tulossa pian. Jos haluat jatkaa aiemman ulkoasun käyttöä, voit vaihtaa ulkoasua asetuksissa. Huomaa kuitenkin, että uudesta ulkoasusta tulee pysyvä muutaman viikon kuluttua.",
+  "settings.tab.notifications": "Ilmoitukset",
+  "settings.tab.projects": "Projektit",
+  "settings.tab.experimental": "Kokeellinen",
+  "settings.projects.title": "Projektit",
+  "settings.projects.description": "Hallinnoi tämän palvelimen projektiasetuksia",
+  "settings.projects.empty.title": "No projects yet",
+  "settings.projects.empty.description": "Add a project to get started",
+  "settings.appearance.description": "Mukauta teemaa ja fontteja",
+  "settings.notifications.description": "Valitse, milloin haluat vastaanottaa ilmoituksia ja kuulla ääniä",
+  "settings.experimental.description": "Kokeile kokeellisia ominaisuuksia",
 }

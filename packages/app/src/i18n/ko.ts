@@ -1174,4 +1174,14 @@ export const dict = {
 
   "desktop.picker.error.notSelected": "선택기에서 파일을 선택하지 않았습니다",
   "desktop.picker.error.sizeLimit": "선택한 첨부 파일이 {{limit}} MB 제한을 초과합니다",
+  "settings.tab.notifications": "알림",
+  "settings.tab.projects": "프로젝트",
+  "settings.tab.experimental": "실험적",
+  "settings.projects.title": "프로젝트",
+  "settings.projects.description": "이 서버의 프로젝트 설정 관리",
+  "settings.projects.empty.title": "No projects yet",
+  "settings.projects.empty.description": "Add a project to get started",
+  "settings.appearance.description": "테마 및 글꼴을 사용자 지정",
+  "settings.notifications.description": "알림을 받을 때와 소리 재생 여부를 선택",
+  "settings.experimental.description": "실험적인 기능을 사용해 보세요",
 }

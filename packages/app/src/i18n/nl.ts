@@ -1178,4 +1178,14 @@ export const dict = {
   "workspace.reset.archived.many": "{{count}} sessies worden gearchiveerd.",
   "workspace.reset.note":
     "Hierdoor wordt de werkruimte opnieuw ingesteld zodat deze overeenkomt met de standaardbranch.",
+  "settings.tab.notifications": "Meldingen",
+  "settings.tab.projects": "Projecten",
+  "settings.tab.experimental": "Experimenteel",
+  "settings.projects.title": "Projecten",
+  "settings.projects.description": "Beheer projectinstellingen op deze server",
+  "settings.projects.empty.title": "No projects yet",
+  "settings.projects.empty.description": "Add a project to get started",
+  "settings.appearance.description": "Pas het thema en de lettertypen aan",
+  "settings.notifications.description": "Kies wanneer u meldingen wilt ontvangen en geluiden wilt horen",
+  "settings.experimental.description": "Probeer experimentele functies",
 }

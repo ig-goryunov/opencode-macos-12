@@ -1192,4 +1192,14 @@ export const dict = {
   "help.tabs.persistence": "Wenn Sie die App erneut öffnen, sind Ihre Tabs weiterhin geöffnet.",
   "help.tabs.worktrees":
     "Das neue Design unterstützt Git-Worktrees noch nicht. Diese Funktion folgt in Kürze. Wenn Sie das bisherige Layout vorerst weiterverwenden möchten, können Sie in den Einstellungen zwischen den Layouts wechseln. Beachten Sie jedoch, dass das neue Layout in einigen Wochen dauerhaft verwendet wird.",
+  "settings.tab.notifications": "Benachrichtigungen",
+  "settings.tab.projects": "Projekte",
+  "settings.tab.experimental": "Experimentell",
+  "settings.projects.title": "Projekte",
+  "settings.projects.description": "Projekteinstellungen auf diesem Server verwalten",
+  "settings.projects.empty.title": "No projects yet",
+  "settings.projects.empty.description": "Add a project to get started",
+  "settings.appearance.description": "Passen Sie Design und Schriftarten an",
+  "settings.notifications.description": "Wählen Sie aus, wann Sie Benachrichtigungen erhalten und Töne hören möchten",
+  "settings.experimental.description": "Experimentelle Funktionen ausprobieren",
 } satisfies Partial<Record<Keys, string>>

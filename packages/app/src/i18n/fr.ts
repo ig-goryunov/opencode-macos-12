@@ -1206,4 +1206,14 @@ export const dict = {
 
   "titlebar.update": "Mettre à jour",
   "titlebar.updateVersion": "Mettre à jour {{version}}",
+  "settings.tab.notifications": "Notifications",
+  "settings.tab.projects": "Projets",
+  "settings.tab.experimental": "Expérimental",
+  "settings.projects.title": "Projets",
+  "settings.projects.description": "Gérer les paramètres du projet sur ce serveur",
+  "settings.projects.empty.title": "No projects yet",
+  "settings.projects.empty.description": "Add a project to get started",
+  "settings.appearance.description": "Personnaliser le thème et les polices",
+  "settings.notifications.description": "Choisissez quand recevoir des notifications et entendre des sons",
+  "settings.experimental.description": "Essayer les fonctionnalités expérimentales",
 }

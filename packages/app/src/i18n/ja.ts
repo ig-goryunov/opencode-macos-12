@@ -1176,4 +1176,14 @@ export const dict = {
 
   "titlebar.update": "アップデート",
   "titlebar.updateVersion": "アップデート {{version}}",
+  "settings.tab.notifications": "通知",
+  "settings.tab.projects": "プロジェクト",
+  "settings.tab.experimental": "実験的",
+  "settings.projects.title": "プロジェクト",
+  "settings.projects.description": "このサーバーのプロジェクト設定を管理します",
+  "settings.projects.empty.title": "No projects yet",
+  "settings.projects.empty.description": "Add a project to get started",
+  "settings.appearance.description": "テーマとフォントをカスタマイズします",
+  "settings.notifications.description": "通知を受け取り、サウンドを鳴らすタイミングを選択します",
+  "settings.experimental.description": "実験的な機能を試す",
 }

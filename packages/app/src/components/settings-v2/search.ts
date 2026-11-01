@@ -1,4 +1,15 @@
-export type SettingsTab = "general" | "shortcuts" | "servers" | "providers" | "models" | "extensions" | "about"
+export type SettingsTab =
+  | "general"
+  | "appearance"
+  | "notifications"
+  | "shortcuts"
+  | "projects"
+  | "servers"
+  | "providers"
+  | "models"
+  | "extensions"
+  | "experimental"
+  | "about"
 
 export type SettingsSearchEntry = {
   /** Matches `data-settings-row` on a settings row; omit for whole-tab entries. */
@@ -21,27 +32,27 @@ export const settingsSearchEntries: SettingsSearchEntry[] = [
   { id: "shell", tab: "general", titleKey: "settings.general.row.shell.title", descriptionKey: "settings.general.row.shell.description" },
   {
     id: "color-scheme",
-    tab: "general",
+    tab: "appearance",
     titleKey: "settings.general.row.colorScheme.title",
     descriptionKey: "settings.general.row.colorScheme.description",
   },
-  { id: "theme", tab: "general", titleKey: "settings.general.row.theme.title", descriptionKey: "settings.general.row.theme.description" },
-  { id: "font-ui", tab: "general", titleKey: "settings.general.row.uiFont.title", descriptionKey: "settings.general.row.uiFont.description" },
-  { id: "font-code", tab: "general", titleKey: "settings.general.row.font.title", descriptionKey: "settings.general.row.font.description" },
+  { id: "theme", tab: "appearance", titleKey: "settings.general.row.theme.title", descriptionKey: "settings.general.row.theme.description" },
+  { id: "font-ui", tab: "appearance", titleKey: "settings.general.row.uiFont.title", descriptionKey: "settings.general.row.uiFont.description" },
+  { id: "font-code", tab: "appearance", titleKey: "settings.general.row.font.title", descriptionKey: "settings.general.row.font.description" },
   {
     id: "font-terminal",
-    tab: "general",
+    tab: "appearance",
     titleKey: "settings.general.row.terminalFont.title",
     descriptionKey: "settings.general.row.terminalFont.description",
   },
-  { id: "sound-agent", tab: "general", titleKey: "settings.general.sounds.agent.title", descriptionKey: "settings.general.sounds.agent.description" },
+  { id: "sound-agent", tab: "notifications", titleKey: "settings.general.sounds.agent.title", descriptionKey: "settings.general.sounds.agent.description" },
   {
     id: "sound-permissions",
-    tab: "general",
+    tab: "notifications",
     titleKey: "settings.general.sounds.permissions.title",
     descriptionKey: "settings.general.sounds.permissions.description",
   },
-  { id: "sound-errors", tab: "general", titleKey: "settings.general.sounds.errors.title", descriptionKey: "settings.general.sounds.errors.description" },
+  { id: "sound-errors", tab: "notifications", titleKey: "settings.general.sounds.errors.title", descriptionKey: "settings.general.sounds.errors.description" },
   {
     id: "language",
     tab: "general",
@@ -57,21 +68,21 @@ export const settingsSearchEntries: SettingsSearchEntry[] = [
   { id: "mobile", tab: "general", titleKey: "settings.general.row.mobile.title", descriptionKey: "settings.general.row.mobile.description" },
   {
     id: "reasoning-summaries",
-    tab: "general",
+    tab: "experimental",
     titleKey: "settings.general.row.reasoningSummaries.title",
     descriptionKey: "settings.general.row.reasoningSummaries.description",
     keywords: ["timeline", "таймлайн"],
   },
   {
     id: "shell-parts",
-    tab: "general",
+    tab: "experimental",
     titleKey: "settings.general.row.shellToolPartsExpanded.title",
     descriptionKey: "settings.general.row.shellToolPartsExpanded.description",
     keywords: ["timeline", "таймлайн"],
   },
   {
     id: "edit-parts",
-    tab: "general",
+    tab: "experimental",
     titleKey: "settings.general.row.editToolPartsExpanded.title",
     descriptionKey: "settings.general.row.editToolPartsExpanded.description",
     keywords: ["timeline", "таймлайн"],
@@ -82,36 +93,36 @@ export const settingsSearchEntries: SettingsSearchEntry[] = [
     titleKey: "settings.general.row.mobileTitlebarBottom.title",
     descriptionKey: "settings.general.row.mobileTitlebarBottom.description",
   },
-  { id: "file-tree", tab: "general", titleKey: "settings.general.row.showFileTree.title", descriptionKey: "settings.general.row.showFileTree.description" },
-  { id: "show-search", tab: "general", titleKey: "settings.general.row.showSearch.title", descriptionKey: "settings.general.row.showSearch.description" },
-  { id: "show-status", tab: "general", titleKey: "settings.general.row.showStatus.title", descriptionKey: "settings.general.row.showStatus.description" },
+  { id: "file-tree", tab: "experimental", titleKey: "settings.general.row.showFileTree.title", descriptionKey: "settings.general.row.showFileTree.description" },
+  { id: "show-search", tab: "experimental", titleKey: "settings.general.row.showSearch.title", descriptionKey: "settings.general.row.showSearch.description" },
+  { id: "show-status", tab: "experimental", titleKey: "settings.general.row.showStatus.title", descriptionKey: "settings.general.row.showStatus.description" },
   {
     id: "custom-agents",
-    tab: "general",
+    tab: "experimental",
     titleKey: "settings.general.row.showCustomAgents.title",
     descriptionKey: "settings.general.row.showCustomAgents.description",
   },
   {
     id: "notif-agent",
-    tab: "general",
+    tab: "notifications",
     titleKey: "settings.general.notifications.agent.title",
     descriptionKey: "settings.general.notifications.agent.description",
   },
   {
     id: "notif-permissions",
-    tab: "general",
+    tab: "notifications",
     titleKey: "settings.general.notifications.permissions.title",
     descriptionKey: "settings.general.notifications.permissions.description",
   },
   {
     id: "notif-errors",
-    tab: "general",
+    tab: "notifications",
     titleKey: "settings.general.notifications.errors.title",
     descriptionKey: "settings.general.notifications.errors.description",
   },
   {
     id: "collapse-tools",
-    tab: "general",
+    tab: "experimental",
     titleKey: "settings.general.row.collapseTools.title",
     descriptionKey: "settings.general.row.collapseTools.description",
     keywords: ["timeline", "таймлайн", "tools", "инструменты"],
@@ -123,9 +134,12 @@ export const settingsSearchEntries: SettingsSearchEntry[] = [
     descriptionKey: "settings.general.row.releaseNotes.description",
   },
   { id: "update-check", tab: "general", titleKey: "settings.updates.row.check.title", descriptionKey: "settings.updates.row.check.description" },
-  { id: "pinch-zoom", tab: "general", titleKey: "settings.general.row.pinchZoom.title", descriptionKey: "settings.general.row.pinchZoom.description" },
+  { id: "pinch-zoom", tab: "appearance", titleKey: "settings.general.row.pinchZoom.title", descriptionKey: "settings.general.row.pinchZoom.description" },
 
+  { tab: "appearance", titleKey: "settings.general.section.appearance" },
+  { tab: "notifications", titleKey: "settings.tab.notifications" },
   { tab: "shortcuts", titleKey: "settings.tab.shortcuts" },
+  { tab: "projects", titleKey: "settings.tab.projects" },
   { tab: "servers", titleKey: "status.popover.tab.servers" },
   { tab: "providers", titleKey: "settings.providers.title" },
   { tab: "models", titleKey: "settings.models.title" },
@@ -138,6 +152,7 @@ export const settingsSearchEntries: SettingsSearchEntry[] = [
     descriptionKey: "settings.extensions.skills.row.description",
   },
   { tab: "extensions", titleKey: "settings.extensions.plugins.title" },
+  { tab: "experimental", titleKey: "settings.tab.experimental" },
   { tab: "about", titleKey: "settings.tab.about" },
   { id: "about-update", tab: "about", titleKey: "settings.about.updates.title", descriptionKey: "settings.about.updates.description" },
   { id: "about-logs", tab: "about", titleKey: "settings.about.logs.title", descriptionKey: "settings.about.logs.description" },
@@ -149,11 +164,15 @@ export const settingsSearchEntries: SettingsSearchEntry[] = [
 
 const tabLabels: Record<SettingsTab, string> = {
   general: "settings.tab.general",
+  appearance: "settings.general.section.appearance",
+  notifications: "settings.tab.notifications",
   shortcuts: "settings.tab.shortcuts",
+  projects: "settings.tab.projects",
   servers: "status.popover.tab.servers",
   providers: "settings.providers.title",
   models: "settings.models.title",
   extensions: "settings.tab.extensions",
+  experimental: "settings.tab.experimental",
   about: "settings.tab.about",
 }
 
