@@ -915,6 +915,11 @@ export const dict = {
   "settings.desktop.wsl.description": "Pokreni OpenCode server unutar WSL-a na Windowsu.",
 
   "settings.general.section.appearance": "Izgled",
+  "settings.general.section.workspace": "Workspace",
+  "settings.general.row.sidePanel.title": "Side panel position",
+  "settings.general.row.sidePanel.description": "Place the review and files panel on the left or right",
+  "settings.general.row.sidePanel.left": "Left",
+  "settings.general.row.sidePanel.right": "Right",
   "settings.general.section.advanced": "Napredno",
   "settings.general.section.notifications": "Sistemske obavijesti",
   "settings.general.section.updates": "Ažuriranja",

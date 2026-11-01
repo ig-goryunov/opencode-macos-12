@@ -900,6 +900,11 @@ export const dict = {
   "settings.desktop.wsl.description": "在 Windows 的 WSL 环境中运行 OpenCode 服务器。",
 
   "settings.general.section.appearance": "外观",
+  "settings.general.section.workspace": "Workspace",
+  "settings.general.row.sidePanel.title": "Side panel position",
+  "settings.general.row.sidePanel.description": "Place the review and files panel on the left or right",
+  "settings.general.row.sidePanel.left": "Left",
+  "settings.general.row.sidePanel.right": "Right",
   "settings.general.section.advanced": "高级",
   "settings.general.section.notifications": "系统通知",
   "settings.general.section.updates": "更新",

@@ -36,6 +36,7 @@ export interface Settings {
     timelineCollapseTools: boolean
     showCustomAgents: boolean
     mobileTitlebarPosition: "top" | "bottom"
+    sidePanelSide: "right" | "left"
     newLayoutDesigns?: boolean
     layoutTransitionEligible?: boolean
     agentVisibilityInitialized?: boolean
@@ -199,6 +200,7 @@ const defaultSettings: Settings = {
     timelineCollapseTools: false,
     showCustomAgents: false,
     mobileTitlebarPosition: "top",
+    sidePanelSide: "right",
   },
   appearance: {
     fontSize: 14,
@@ -439,6 +441,10 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         ),
         setMobileTitlebarPosition(value: "top" | "bottom") {
           setStore("general", "mobileTitlebarPosition", value)
+        },
+        sidePanelSide: withFallback(() => store.general?.sidePanelSide, defaultSettings.general.sidePanelSide),
+        setSidePanelSide(value: "right" | "left") {
+          setStore("general", "sidePanelSide", value)
         },
         newLayoutDesigns,
         setNewLayoutDesigns(value: boolean) {

@@ -23,6 +23,11 @@ import {
 } from "./general-controllers"
 import "./settings-v2.css"
 
+const sidePanelOptions = [
+  { value: "right" as const, label: "settings.general.row.sidePanel.right" as const },
+  { value: "left" as const, label: "settings.general.row.sidePanel.left" as const },
+]
+
 const PermissionScopeSetting: Component<{ controller: PermissionScopeController }> = (props) => {
   const language = useLanguage()
   return (
@@ -213,6 +218,96 @@ export const SettingsGeneralV2: Component<{
     </div>
   )
 
+  const WorkspaceSection = () => (
+    <div class="settings-v2-section">
+      <h3 class="settings-v2-section-title">{language.t("settings.general.section.workspace")}</h3>
+      <SettingsListV2>
+        <SettingsRowV2
+          id="side-panel"
+          title={language.t("settings.general.row.sidePanel.title")}
+          description={language.t("settings.general.row.sidePanel.description")}
+        >
+          <SelectV2
+            appearance="inline"
+            data-action="settings-side-panel"
+            options={sidePanelOptions}
+            current={sidePanelOptions.find((option) => option.value === settings.general.sidePanelSide())}
+            placement="bottom-end"
+            gutter={6}
+            value={(option) => option.value}
+            label={(option) => language.t(option.label)}
+            onSelect={(option) => option && settings.general.setSidePanelSide(option.value)}
+          />
+        </SettingsRowV2>
+
+        <SettingsRowV2
+          id="file-tree"
+          title={language.t("settings.general.row.showFileTree.title")}
+          description={language.t("settings.general.row.showFileTree.description")}
+        >
+          <div data-action="settings-show-file-tree">
+            <Switch
+              checked={settings.general.showFileTree()}
+              onChange={(checked) => settings.general.setShowFileTree(checked)}
+            />
+          </div>
+        </SettingsRowV2>
+
+        <SettingsRowV2
+          id="show-navigation"
+          title={language.t("settings.general.row.showNavigation.title")}
+          description={language.t("settings.general.row.showNavigation.description")}
+        >
+          <div data-action="settings-show-navigation">
+            <Switch
+              checked={settings.general.showNavigation()}
+              onChange={(checked) => settings.general.setShowNavigation(checked)}
+            />
+          </div>
+        </SettingsRowV2>
+
+        <SettingsRowV2
+          id="show-search"
+          title={language.t("settings.general.row.showSearch.title")}
+          description={language.t("settings.general.row.showSearch.description")}
+        >
+          <div data-action="settings-show-search">
+            <Switch
+              checked={settings.general.showSearch()}
+              onChange={(checked) => settings.general.setShowSearch(checked)}
+            />
+          </div>
+        </SettingsRowV2>
+
+        <SettingsRowV2
+          id="show-status"
+          title={language.t("settings.general.row.showStatus.title")}
+          description={language.t("settings.general.row.showStatus.description")}
+        >
+          <div data-action="settings-show-status">
+            <Switch
+              checked={settings.general.showStatus()}
+              onChange={(checked) => settings.general.setShowStatus(checked)}
+            />
+          </div>
+        </SettingsRowV2>
+
+        <SettingsRowV2
+          id="custom-agents"
+          title={language.t("settings.general.row.showCustomAgents.title")}
+          description={language.t("settings.general.row.showCustomAgents.description")}
+        >
+          <div data-action="settings-show-custom-agents">
+            <Switch
+              checked={settings.general.showCustomAgents()}
+              onChange={(checked) => settings.general.setShowCustomAgents(checked)}
+            />
+          </div>
+        </SettingsRowV2>
+      </SettingsListV2>
+    </div>
+  )
+
   const UpdatesSection = () => (
     <div class="settings-v2-section">
       <h3 class="settings-v2-section-title">{language.t("settings.general.section.updates")}</h3>
@@ -252,6 +347,8 @@ export const SettingsGeneralV2: Component<{
 
       <div class="settings-v2-tab-body">
         <GeneralSection />
+
+        <WorkspaceSection />
 
         <Show when={desktop()}>
           <UpdatesSection />

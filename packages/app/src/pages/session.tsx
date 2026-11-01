@@ -2256,6 +2256,7 @@ export default function Page() {
         class="flex-1 min-h-0 flex flex-col md:flex-row"
         classList={{
           "gap-2 p-2": settings.general.newLayoutDesigns(),
+          "md:flex-row-reverse": settings.general.sidePanelSide() === "left",
         }}
       >
         <Show when={!isDesktop() && !!params.id && !settings.general.newLayoutDesigns()}>{mobileTabs()}</Show>
@@ -2288,8 +2289,10 @@ export default function Page() {
             <div onPointerDown={() => size.start()}>
               <ResizeHandle
                 classList={{
-                  "-end-1": settings.general.newLayoutDesigns(),
+                  "-end-1": settings.general.newLayoutDesigns() && settings.general.sidePanelSide() === "right",
+                  "-start-1": settings.general.newLayoutDesigns() && settings.general.sidePanelSide() === "left",
                 }}
+                edge={settings.general.sidePanelSide() === "left" ? "start" : "end"}
                 direction="horizontal"
                 size={sessionPanelResizedWidth()}
                 min={SESSION_PANEL_WIDTH_MIN}

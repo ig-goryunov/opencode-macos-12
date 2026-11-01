@@ -1046,6 +1046,11 @@ export const dict = {
   "settings.desktop.wsl.description": "Запускать сервер OpenCode внутри WSL на Windows.",
 
   "settings.general.section.appearance": "Внешний вид",
+  "settings.general.section.workspace": "Рабочее пространство",
+  "settings.general.row.sidePanel.title": "Положение боковой панели",
+  "settings.general.row.sidePanel.description": "Разместить панель обзора и файлов слева или справа",
+  "settings.general.row.sidePanel.left": "Слева",
+  "settings.general.row.sidePanel.right": "Справа",
   "settings.general.section.advanced": "Дополнительно",
   "settings.general.section.notifications": "Системные уведомления",
   "settings.general.section.updates": "Обновления",
