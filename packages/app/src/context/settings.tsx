@@ -1,6 +1,7 @@
 import { createStore, reconcile } from "solid-js/store"
 import { batch, createEffect, createMemo, createSignal, onCleanup } from "solid-js"
 import { createSimpleContext } from "@opencode-ai/ui/context"
+import { createMediaQuery } from "@solid-primitives/media"
 import { persisted } from "@/utils/persist"
 import { usePlatform } from "@/context/platform"
 
@@ -46,6 +47,7 @@ export interface Settings {
     mono: string
     sans: string
     terminal: string
+    reduceMotion: "system" | "on" | "off"
   }
   keybinds: Record<string, string>
   permissions: {
@@ -203,6 +205,7 @@ const defaultSettings: Settings = {
     mono: "",
     sans: "",
     terminal: "",
+    reduceMotion: "system",
   },
   keybinds: {},
   permissions: {
@@ -326,6 +329,14 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         setStore("general", "newLayoutDesigns", true)
       }
       setLaunchState("migrationApplied", true)
+    })
+
+    const systemReduceMotion = createMediaQuery("(prefers-reduced-motion: reduce)")
+    createEffect(() => {
+      if (typeof document === "undefined") return
+      const value = store.appearance?.reduceMotion ?? defaultSettings.appearance.reduceMotion
+      const reduce = value === "system" ? systemReduceMotion() : value === "on"
+      document.documentElement.dataset.motion = reduce ? "reduce" : "full"
     })
 
     createEffect(() => {
@@ -475,6 +486,10 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         terminalFont: withFallback(() => store.appearance?.terminal, defaultSettings.appearance.terminal),
         setTerminalFont(value: string) {
           setStore("appearance", "terminal", value.trim() ? value : "")
+        },
+        reduceMotion: withFallback(() => store.appearance?.reduceMotion, defaultSettings.appearance.reduceMotion),
+        setReduceMotion(value: "system" | "on" | "off") {
+          setStore("appearance", "reduceMotion", value)
         },
       },
       keybinds: {

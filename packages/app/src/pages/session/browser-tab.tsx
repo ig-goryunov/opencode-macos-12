@@ -404,10 +404,47 @@ export function SessionBrowserTab() {
         <Tooltip value={language.t("session.browser.reload")} placement="bottom">
           <IconButton icon="reset" variant="ghost" class="h-7 w-7" onClick={reload} />
         </Tooltip>
+        <form
+          class="flex min-w-0 flex-1 items-center"
+          onSubmit={(event) => {
+            event.preventDefault()
+            navigate(address())
+          }}
+        >
+          <Show
+            when={favicon()}
+            fallback={<Icon name="globe" size="small" class="ml-1 mr-1.5 shrink-0 text-text-weak" />}
+          >
+            <img
+              src={favicon()}
+              alt=""
+              class="ml-1 mr-1.5 size-3.5 shrink-0 rounded-sm"
+              onError={(event) => (event.currentTarget.style.display = "none")}
+            />
+          </Show>
+          <input
+            type="text"
+            spellcheck={false}
+            autocomplete="off"
+            class="h-7 w-full min-w-0 rounded-md border border-border-weaker-base bg-background-base px-2 text-12-regular text-text-strong outline-none placeholder:text-text-weak focus:border-border-focus"
+            placeholder={language.t("session.browser.placeholder")}
+            value={address()}
+            onInput={(event) => setAddress(event.currentTarget.value)}
+            onFocus={() => setHistoryOpen(false)}
+          />
+        </form>
+        <Show when={rewritten() && remoteHost()}>
+          <div
+            class="shrink-0 rounded-md bg-background-stronger px-1.5 py-0.5 text-11-regular text-text-weak"
+            title={language.t("session.browser.rewroteLocalhost")}
+          >
+            {remoteHost()}
+          </div>
+        </Show>
         <div class="relative shrink-0">
           <Tooltip value={language.t("session.browser.history")} placement="bottom">
             <IconButton
-              icon="archive"
+              icon="checklist"
               variant="ghost"
               class="h-7 w-7"
               disabled={entries().entries.length === 0}
@@ -415,7 +452,7 @@ export function SessionBrowserTab() {
             />
           </Tooltip>
           <Show when={historyOpen()}>
-            <div class="absolute left-0 top-full z-40 mt-1 max-h-80 w-[360px] overflow-auto rounded-md border border-border-weaker-base bg-background-base py-1 shadow-lg">
+            <div class="absolute right-0 top-full z-40 mt-1 max-h-80 w-[360px] overflow-auto rounded-md border border-border-weaker-base bg-background-base py-1 shadow-lg">
               <Show
                 when={entries().entries.length > 0}
                 fallback={
@@ -459,43 +496,6 @@ export function SessionBrowserTab() {
             </div>
           </Show>
         </div>
-        <form
-          class="flex min-w-0 flex-1 items-center"
-          onSubmit={(event) => {
-            event.preventDefault()
-            navigate(address())
-          }}
-        >
-          <Show
-            when={favicon()}
-            fallback={<Icon name="globe" size="small" class="ml-1 mr-1.5 shrink-0 text-text-weak" />}
-          >
-            <img
-              src={favicon()}
-              alt=""
-              class="ml-1 mr-1.5 size-3.5 shrink-0 rounded-sm"
-              onError={(event) => (event.currentTarget.style.display = "none")}
-            />
-          </Show>
-          <input
-            type="text"
-            spellcheck={false}
-            autocomplete="off"
-            class="h-7 w-full min-w-0 rounded-md border border-border-weaker-base bg-background-base px-2 text-12-regular text-text-strong outline-none placeholder:text-text-weak focus:border-border-focus"
-            placeholder={language.t("session.browser.placeholder")}
-            value={address()}
-            onInput={(event) => setAddress(event.currentTarget.value)}
-            onFocus={() => setHistoryOpen(false)}
-          />
-        </form>
-        <Show when={rewritten() && remoteHost()}>
-          <div
-            class="shrink-0 rounded-md bg-background-stronger px-1.5 py-0.5 text-11-regular text-text-weak"
-            title={language.t("session.browser.rewroteLocalhost")}
-          >
-            {remoteHost()}
-          </div>
-        </Show>
         <Tooltip
           value={language.t(pickActive() ? "session.browser.pick.cancel" : "session.browser.pick")}
           placement="bottom"

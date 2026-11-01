@@ -25,7 +25,7 @@ import pkg from "../../package.json"
 import { t } from "./i18n"
 import { initializationData } from "./initialization"
 import { DesktopFirstLaunchOnboarding } from "./onboarding"
-import { resetZoom, setPinchZoomEnabled, webviewZoom, zoomIn, zoomOut } from "./webview-zoom"
+import { resetZoom, setPinchZoomEnabled, setWebviewZoomLevel, webviewZoom, zoomIn, zoomOut } from "./webview-zoom"
 import { windowFullscreen } from "./window-fullscreen"
 import { availableStartupServer, readyWslConnections } from "./wsl/connections"
 import "./styles.css"
@@ -293,6 +293,7 @@ const createPlatform = (windowState: DesktopWindowState): Platform => {
     },
 
     webviewZoom,
+    setWebviewZoom: setWebviewZoomLevel,
 
     windowFullscreen,
 

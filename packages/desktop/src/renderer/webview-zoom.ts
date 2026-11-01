@@ -65,6 +65,8 @@ const setPinchZoomEnabled = (enabled: boolean) => {
   return window.api.setPinchZoomEnabled(enabled)
 }
 
+const setWebviewZoomLevel = (level: number) => applyZoom(clamp(level))
+
 const resetZoom = () => applyZoom(1)
 const zoomIn = () => applyZoom(clamp(requestedZoom + 0.2))
 const zoomOut = () => applyZoom(clamp(requestedZoom - 0.2))
@@ -135,4 +137,4 @@ window.addEventListener("keydown", (event) => {
   }
 })
 
-export { webviewZoom, resetZoom, setPinchZoomEnabled, zoomIn, zoomOut }
+export { webviewZoom, resetZoom, setPinchZoomEnabled, setWebviewZoomLevel, zoomIn, zoomOut }

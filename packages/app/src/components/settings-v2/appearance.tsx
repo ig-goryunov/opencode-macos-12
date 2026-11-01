@@ -1,9 +1,9 @@
-import { Component, Show, createMemo, createResource } from "solid-js"
+import { Component, Show, createMemo, type JSX } from "solid-js"
 import { SelectV2 } from "@opencode-ai/ui/v2/select-v2"
-import { Switch } from "@opencode-ai/ui/v2/switch-v2"
 import { TextInputV2 } from "@opencode-ai/ui/v2/text-input-v2"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
+import { useSettings } from "@/context/settings"
 import { ExternalLink } from "../external-link"
 import { SettingsListV2 } from "./parts/list"
 import { SettingsRowV2 } from "./parts/row"
@@ -11,6 +11,12 @@ import { createAppearanceSettingsController, type AppearanceSettingsController }
 import "./settings-v2.css"
 
 const schemeOptions: ("system" | "light" | "dark")[] = ["system", "light", "dark"]
+const zoomLevels = [0.5, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 2]
+const reduceMotionOptions = [
+  { value: "system" as const, label: "settings.appearance.row.reduceMotion.system" as const },
+  { value: "on" as const, label: "settings.appearance.row.reduceMotion.on" as const },
+  { value: "off" as const, label: "settings.appearance.row.reduceMotion.off" as const },
+]
 const fontSettings = {
   ui: {
     action: "settings-ui-font",
@@ -67,7 +73,7 @@ const FontSetting: Component<{
   )
 }
 
-const AppearanceSection: Component<{ controller: AppearanceSettingsController }> = (props) => {
+const AppearanceSection: Component<{ controller: AppearanceSettingsController; children?: JSX.Element }> = (props) => {
   const language = useLanguage()
   return (
     <div class="settings-v2-section">
@@ -122,6 +128,7 @@ const AppearanceSection: Component<{ controller: AppearanceSettingsController }>
         <FontSetting kind="ui" fonts={props.controller.fonts} />
         <FontSetting kind="code" fonts={props.controller.fonts} />
         <FontSetting kind="terminal" fonts={props.controller.fonts} />
+        {props.children}
       </SettingsListV2>
     </div>
   )
@@ -131,46 +138,61 @@ export const SettingsAppearanceV2: Component = () => {
   const language = useLanguage()
   const platform = usePlatform()
   const appearance = createAppearanceSettingsController()
-  const desktop = createMemo(() => platform.platform === "desktop")
-
-  const [pinchZoom, { mutate: setPinchZoom }] = createResource(
-    () => desktop() && "getPinchZoomEnabled" in platform,
-    () => Promise.resolve(platform.getPinchZoomEnabled?.() ?? false).catch(() => false),
-    { initialValue: false },
-  )
-
-  const onPinchZoomChange = (checked: boolean) => {
-    setPinchZoom(checked)
-    const update = platform.setPinchZoomEnabled?.(checked)
-    if (!update) return
-    void update.catch(() => setPinchZoom(!checked))
-  }
+  const settings = useSettings()
+  const zoom = () => platform.webviewZoom?.() ?? 1
+  const zoomAvailable = () => !!platform.webviewZoom && !!platform.setWebviewZoom
+  const formatZoom = (level: number) =>
+    new Intl.NumberFormat(language.intl(), { style: "percent", maximumFractionDigits: 0 }).format(level)
 
   return (
     <>
       <div class="settings-v2-tab-header">
-        <h2 class="settings-v2-tab-title">{language.t("settings.general.section.appearance")}</h2>
+        <div class="flex flex-col gap-1">
+          <h2 class="settings-v2-tab-title">{language.t("settings.general.section.appearance")}</h2>
+          <p class="text-11-regular text-v2-text-text-muted">{language.t("settings.appearance.description")}</p>
+        </div>
       </div>
 
       <div class="settings-v2-tab-body">
-        <AppearanceSection controller={appearance} />
+        <AppearanceSection controller={appearance}>
+          <Show when={zoomAvailable()}>
+            <SettingsRowV2
+              id="zoom"
+              title={language.t("settings.appearance.row.zoom.title")}
+              description={language.t("settings.appearance.row.zoom.description")}
+            >
+              <SelectV2
+                appearance="inline"
+                data-action="settings-zoom"
+                options={zoomLevels}
+                current={zoomLevels.find((level) => Math.abs(level - zoom()) < 0.001) ?? zoom()}
+                placement="bottom-end"
+                gutter={6}
+                value={(level) => String(level)}
+                label={formatZoom}
+                onSelect={(level) => level && platform.setWebviewZoom?.(level)}
+              />
+            </SettingsRowV2>
+          </Show>
 
-        <Show when={desktop()}>
-          <div class="settings-v2-section">
-            <h3 class="settings-v2-section-title">{language.t("settings.general.section.display")}</h3>
-            <SettingsListV2>
-              <SettingsRowV2
-                id="pinch-zoom"
-                title={language.t("settings.general.row.pinchZoom.title")}
-                description={language.t("settings.general.row.pinchZoom.description")}
-              >
-                <div data-action="settings-pinch-zoom">
-                  <Switch checked={pinchZoom.latest} onChange={onPinchZoomChange} />
-                </div>
-              </SettingsRowV2>
-            </SettingsListV2>
-          </div>
-        </Show>
+          <SettingsRowV2
+            id="reduce-motion"
+            title={language.t("settings.appearance.row.reduceMotion.title")}
+            description={language.t("settings.appearance.row.reduceMotion.description")}
+          >
+            <SelectV2
+              appearance="inline"
+              data-action="settings-reduce-motion"
+              options={reduceMotionOptions}
+              current={reduceMotionOptions.find((option) => option.value === settings.appearance.reduceMotion())}
+              placement="bottom-end"
+              gutter={6}
+              value={(option) => option.value}
+              label={(option) => language.t(option.label)}
+              onSelect={(option) => option && settings.appearance.setReduceMotion(option.value)}
+            />
+          </SettingsRowV2>
+        </AppearanceSection>
       </div>
     </>
   )

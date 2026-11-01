@@ -95,6 +95,9 @@ type PlatformBase = {
   /** Webview zoom level (desktop only) */
   webviewZoom?: Accessor<number>
 
+  /** Set the webview zoom level (desktop only) */
+  setWebviewZoom?: (level: number) => void | Promise<void>
+
   /** Whether the native desktop window is fullscreen */
   windowFullscreen?: Accessor<boolean>
 

@@ -140,7 +140,9 @@ export const settingsSearchEntries: SettingsSearchEntry[] = [
     descriptionKey: "settings.general.row.releaseNotes.description",
   },
   { id: "update-check", tab: "general", titleKey: "settings.updates.row.check.title", descriptionKey: "settings.updates.row.check.description" },
-  { id: "pinch-zoom", tab: "appearance", titleKey: "settings.general.row.pinchZoom.title", descriptionKey: "settings.general.row.pinchZoom.description" },
+  { id: "pinch-zoom", tab: "experimental", titleKey: "settings.general.row.pinchZoom.title", descriptionKey: "settings.general.row.pinchZoom.description" },
+  { id: "zoom", tab: "appearance", titleKey: "settings.appearance.row.zoom.title", descriptionKey: "settings.appearance.row.zoom.description" },
+  { id: "reduce-motion", tab: "appearance", titleKey: "settings.appearance.row.reduceMotion.title", descriptionKey: "settings.appearance.row.reduceMotion.description" },
 
   { tab: "appearance", titleKey: "settings.general.section.appearance" },
   { tab: "notifications", titleKey: "settings.tab.notifications" },

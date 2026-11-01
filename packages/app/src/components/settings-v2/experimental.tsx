@@ -1,7 +1,8 @@
-import { Component, For, Show, createMemo } from "solid-js"
+import { Component, For, Show, createMemo, createResource } from "solid-js"
 import { Switch } from "@opencode-ai/ui/v2/switch-v2"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useLanguage } from "@/context/language"
+import { usePlatform } from "@/context/platform"
 import { useSettings } from "@/context/settings"
 import { LayoutRetirementNotice, LayoutTransitionToggle } from "./interface-transition"
 import { SettingsListV2 } from "./parts/list"
@@ -13,6 +14,19 @@ export const SettingsExperimentalV2: Component = () => {
   const language = useLanguage()
   const dialog = useDialog()
   const settings = useSettings()
+  const platform = usePlatform()
+  const desktop = createMemo(() => platform.platform === "desktop")
+  const [pinchZoom, { mutate: setPinchZoom }] = createResource(
+    () => desktop() && "getPinchZoomEnabled" in platform,
+    () => Promise.resolve(platform.getPinchZoomEnabled?.() ?? false).catch(() => false),
+    { initialValue: false },
+  )
+  const onPinchZoomChange = (checked: boolean) => {
+    setPinchZoom(checked)
+    const update = platform.setPinchZoomEnabled?.(checked)
+    if (!update) return
+    void update.catch(() => setPinchZoom(!checked))
+  }
 
   const InterfaceSection = () => (
     <LayoutTransitionToggle
@@ -248,6 +262,23 @@ export const SettingsExperimentalV2: Component = () => {
         <TimelineSection />
 
         <AdvancedSection />
+
+        <Show when={desktop()}>
+          <div class="settings-v2-section">
+            <h3 class="settings-v2-section-title">{language.t("settings.general.section.display")}</h3>
+            <SettingsListV2>
+              <SettingsRowV2
+                id="pinch-zoom"
+                title={language.t("settings.general.row.pinchZoom.title")}
+                description={language.t("settings.general.row.pinchZoom.description")}
+              >
+                <div data-action="settings-pinch-zoom">
+                  <Switch checked={pinchZoom.latest} onChange={onPinchZoomChange} />
+                </div>
+              </SettingsRowV2>
+            </SettingsListV2>
+          </div>
+        </Show>
       </div>
     </>
   )
