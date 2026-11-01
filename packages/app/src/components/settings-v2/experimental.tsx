@@ -1,10 +1,11 @@
-import { Component, Show } from "solid-js"
+import { Component, For, Show, createMemo } from "solid-js"
 import { Switch } from "@opencode-ai/ui/v2/switch-v2"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useLanguage } from "@/context/language"
 import { useSettings } from "@/context/settings"
 import { LayoutRetirementNotice, LayoutTransitionToggle } from "./interface-transition"
 import { SettingsListV2 } from "./parts/list"
+import { timelineDetailPreset, timelineDetailPresets, type TimelineDetailFlags } from "./timeline-detail"
 import { SettingsRowV2 } from "./parts/row"
 import "./settings-v2.css"
 
@@ -38,9 +39,80 @@ export const SettingsExperimentalV2: Component = () => {
     />
   )
 
+  const flags = createMemo<TimelineDetailFlags>(() => ({
+    showReasoningSummaries: settings.general.showReasoningSummaries(),
+    shellToolPartsExpanded: settings.general.shellToolPartsExpanded(),
+    editToolPartsExpanded: settings.general.editToolPartsExpanded(),
+    timelineCollapseTools: settings.general.timelineCollapseTools(),
+  }))
+  const preset = createMemo(() => timelineDetailPreset(flags()))
+  const position = createMemo(() => {
+    const current = preset()
+    return current ? timelineDetailPresets.indexOf(current) : 1
+  })
+  const presetLabel = () => {
+    const current = preset()
+    if (!current) return language.t("settings.timeline.custom")
+    return language.t(`settings.timeline.preset.${current.id}` as Parameters<typeof language.t>[0])
+  }
+  const applyPreset = (index: number) => {
+    const target = timelineDetailPresets[index]
+    if (!target) return
+    settings.general.setShowReasoningSummaries(target.value.showReasoningSummaries)
+    settings.general.setShellToolPartsExpanded(target.value.shellToolPartsExpanded)
+    settings.general.setEditToolPartsExpanded(target.value.editToolPartsExpanded)
+    settings.general.setTimelineCollapseTools(target.value.timelineCollapseTools)
+  }
+
+  const TimelineDetailControl = () => (
+    <div data-component="timeline-detail-control">
+      <div data-slot="settings-v2-row-copy">
+        <div data-slot="settings-v2-row-title">{language.t("settings.timeline.detail")}</div>
+        <div data-slot="settings-v2-row-description">{language.t("settings.timeline.description")}</div>
+      </div>
+      <div data-slot="timeline-detail-scale">
+        <div
+          data-slot="timeline-detail-track"
+          aria-hidden="true"
+          style={{ "--timeline-detail-progress": `${(position() / (timelineDetailPresets.length - 1)) * 100}%` }}
+        >
+          <For each={timelineDetailPresets}>
+            {(_, index) => (
+              <span
+                data-selected={index() <= position() ? "" : undefined}
+                style={{ "inset-inline-start": `${(index() / (timelineDetailPresets.length - 1)) * 100}%` }}
+              />
+            )}
+          </For>
+        </div>
+        <input
+          data-action="settings-timeline-detail"
+          type="range"
+          min="0"
+          max={timelineDetailPresets.length - 1}
+          step="1"
+          value={position()}
+          aria-valuetext={presetLabel()}
+          aria-label={language.t("settings.timeline.detail")}
+          onInput={(event) => applyPreset(event.currentTarget.valueAsNumber)}
+        />
+      </div>
+      <p>
+        <span data-slot="timeline-detail-summary">
+          {language.t("settings.timeline.summary", { preset: presetLabel() })}
+        </span>{" "}
+        {language.t(
+          `settings.timeline.description.${preset()?.id ?? "custom"}` as Parameters<typeof language.t>[0],
+        )}
+      </p>
+    </div>
+  )
+
   const TimelineSection = () => (
     <div class="settings-v2-section">
       <h3 class="settings-v2-section-title">{language.t("settings.general.section.timeline")}</h3>
+
+      <TimelineDetailControl />
 
       <SettingsListV2>
         <SettingsRowV2

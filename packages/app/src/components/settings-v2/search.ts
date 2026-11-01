@@ -67,6 +67,12 @@ export const settingsSearchEntries: SettingsSearchEntry[] = [
   },
   { id: "mobile", tab: "general", titleKey: "settings.general.row.mobile.title", descriptionKey: "settings.general.row.mobile.description" },
   {
+    id: "timeline-detail",
+    tab: "experimental",
+    titleKey: "settings.timeline.detail",
+    descriptionKey: "settings.timeline.description",
+  },
+  {
     id: "reasoning-summaries",
     tab: "experimental",
     titleKey: "settings.general.row.reasoningSummaries.title",
