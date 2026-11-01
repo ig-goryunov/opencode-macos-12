@@ -8,7 +8,11 @@ export type BrowserSessionState = {
   url?: string
   entries: string[]
   index: number
+  favicons: Record<string, string>
 }
+
+const MAX_ENTRIES = 100
+const MAX_FAVICONS = 200
 
 const KEY = "opencode.browser.v2"
 
@@ -34,7 +38,15 @@ function load() {
     if (!value || typeof value !== "object") continue
     const entries = Array.isArray(value.entries) ? value.entries.filter((entry) => typeof entry === "string") : []
     const index = typeof value.index === "number" ? value.index : entries.length - 1
-    states.set(id, { url: typeof value.url === "string" ? value.url : undefined, entries, index })
+    const favicons =
+      value.favicons && typeof value.favicons === "object"
+        ? Object.fromEntries(
+            Object.entries(value.favicons).filter(
+              (entry): entry is [string, string] => typeof entry[1] === "string" && entry[1].length <= 2048,
+            ),
+          )
+        : {}
+    states.set(id, { url: typeof value.url === "string" ? value.url : undefined, entries, index, favicons })
   }
 }
 
@@ -51,7 +63,7 @@ function state(sessionID: string): BrowserSessionState {
   load()
   let current = states.get(sessionID)
   if (!current) {
-    current = { entries: [], index: -1 }
+    current = { entries: [], index: -1, favicons: {} }
     states.set(sessionID, current)
   }
   return current
@@ -76,6 +88,28 @@ export function browserHistory(sessionID: string): { url?: string; canBack: bool
   }
 }
 
+export function browserHistoryEntries(sessionID: string): { entries: string[]; index: number } {
+  const current = state(sessionID)
+  return { entries: [...current.entries], index: current.index }
+}
+
+export function browserFavicon(sessionID: string, url: string): string | undefined {
+  return state(sessionID).favicons[url]
+}
+
+export function rememberBrowserFavicon(sessionID: string, url: string, favicon: string) {
+  if (!url || url === "about:blank") return
+  if (!/^https?:\/\//.test(favicon) || favicon.length > 2048) return
+  const current = state(sessionID)
+  if (current.favicons[url] === favicon) return
+  current.favicons[url] = favicon
+  const keys = Object.keys(current.favicons)
+  if (keys.length > MAX_FAVICONS) {
+    for (const key of keys.slice(0, keys.length - MAX_FAVICONS)) delete current.favicons[key]
+  }
+  persist()
+}
+
 /** Remember the current page without touching the history stack. */
 export function rememberBrowserUrl(sessionID: string, url: string) {
   if (!url || url === "about:blank") return
@@ -93,7 +127,7 @@ export function recordBrowserNavigation(sessionID: string, url: string) {
     persist()
     return
   }
-  current.entries = [...current.entries.slice(0, current.index + 1), url]
+  current.entries = [...current.entries.slice(0, current.index + 1), url].slice(-MAX_ENTRIES)
   current.index = current.entries.length - 1
   current.url = url
   persist()
@@ -104,6 +138,15 @@ export function recordBrowserNavigation(sessionID: string, url: string) {
  * the end of the stack). The caller loads it; the resulting did-navigate then
  * just re-syncs via `recordBrowserNavigation`.
  */
+export function jumpBrowserHistory(sessionID: string, index: number): string | undefined {
+  const current = state(sessionID)
+  if (index < 0 || index >= current.entries.length) return undefined
+  current.index = index
+  current.url = current.entries[index]
+  persist()
+  return current.url
+}
+
 export function stepBrowserHistory(sessionID: string, delta: 1 | -1): string | undefined {
   const current = state(sessionID)
   const next = current.index + delta

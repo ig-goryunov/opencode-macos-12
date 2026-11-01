@@ -20,6 +20,7 @@ import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
 import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
 import { KeybindV2 } from "@opencode-ai/ui/v2/keybind-v2"
 import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
+import { useDialog } from "@opencode-ai/ui/context/dialog"
 
 import { LayoutRoute, useLayout } from "@/context/layout"
 import { usePlatform } from "@/context/platform"
@@ -39,6 +40,8 @@ import type { PromptSession } from "@/context/prompt"
 import "./titlebar.css"
 import { newTabTooltipKeybind } from "./command-tooltip-keybind"
 import { normalizeSessionInfo } from "@/utils/session"
+import { DialogInbox } from "./dialog-inbox"
+import { useInbox } from "./inbox"
 
 const legacyTitlebarHeight = 40
 const v2TitlebarHeight = 36
@@ -193,6 +196,9 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
           {(_) => {
             const layout = useLayout()
             const global = useGlobal()
+            const dialog = useDialog()
+            const inbox = useInbox()
+            const openInbox = () => dialog.show(() => <DialogInbox />)
 
             const tabs = useTabs()
             const tabsStore = tabs.store
@@ -313,6 +319,16 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
             }
             const toggleHome = () => tabs.toggleHome({ home: layout.route().type === "home", current: currentTab() })
 
+            command.register("inbox", () => [
+              {
+                id: "inbox.open",
+                title: language.t("inbox.open"),
+                category: language.t("command.category.view"),
+                keybind: "mod+shift+i",
+                onSelect: openInbox,
+              },
+            ])
+
             command.register("titlebar-home", () => [
               {
                 id: "home.toggle",
@@ -428,6 +444,23 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
                     onClick={openNewTab}
                     aria-label={language.t("command.session.new")}
                   />
+                </TooltipV2>
+                <TooltipV2 placement="bottom" value={language.t("inbox.open")}>
+                  <div class="relative shrink-0">
+                    <IconButtonV2
+                      type="button"
+                      variant="ghost-muted"
+                      size="large"
+                      icon={<IconV2 name="archive" />}
+                      onClick={openInbox}
+                      aria-label={language.t("inbox.open")}
+                    />
+                    <Show when={inbox.attention() > 0}>
+                      <span class="pointer-events-none absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-text-strong px-1 text-[9px] font-semibold leading-none text-text-invert-base">
+                        {inbox.attention() > 9 ? "9+" : inbox.attention()}
+                      </span>
+                    </Show>
+                  </div>
                 </TooltipV2>
                 <div class="flex-1" />
                 <TitlebarV2Right state={v2RightState()} />

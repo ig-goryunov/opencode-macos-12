@@ -1,7 +1,7 @@
 import { Icon } from "@opencode-ai/ui/icon"
 import { IconButton } from "@opencode-ai/ui/icon-button"
 import { Tooltip } from "@opencode-ai/ui/tooltip"
-import { createMemo, createSignal, onCleanup, Show } from "solid-js"
+import { createMemo, createSignal, For, onCleanup, Show } from "solid-js"
 import { useParams } from "@solidjs/router"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
@@ -14,9 +14,13 @@ import {
   type BrowserWebview,
 } from "@/pages/session/browser-bridge"
 import {
+  browserFavicon,
   browserHistory,
+  browserHistoryEntries,
   browserPartition,
+  jumpBrowserHistory,
   recordBrowserNavigation,
+  rememberBrowserFavicon,
   rememberBrowserUrl,
   restoreBrowserUrl,
   stepBrowserHistory,
@@ -172,6 +176,17 @@ export function SessionBrowserTab() {
   const [error, setError] = createSignal<string | null>(null)
   const [rewritten, setRewritten] = createSignal(false)
   const [pickActive, setPickActive] = createSignal(false)
+  const [historyOpen, setHistoryOpen] = createSignal(false)
+  const [historyTick, setHistoryTick] = createSignal(0)
+  const bumpHistory = () => setHistoryTick((value) => value + 1)
+  const entries = createMemo(() => {
+    historyTick()
+    return browserHistoryEntries(sessionID())
+  })
+  const favicon = createMemo(() => {
+    historyTick()
+    return browserFavicon(sessionID(), current())
+  })
   let pickTimer: ReturnType<typeof setInterval> | undefined
   let pickTimeout: ReturnType<typeof setTimeout> | undefined
 
@@ -187,6 +202,8 @@ export function SessionBrowserTab() {
     setAddress(displayUrl(result.url))
     setError(null)
     if (sessionID()) rememberBrowserUrl(sessionID(), result.url)
+    setHistoryOpen(false)
+    bumpHistory()
     void webview?.loadURL(result.url).catch(() => undefined)
   }
 
@@ -195,6 +212,21 @@ export function SessionBrowserTab() {
     if (!id) return
     const url = stepBrowserHistory(id, delta)
     if (!url) return
+    setHistoryOpen(false)
+    bumpHistory()
+    setCurrent(url)
+    setAddress(displayUrl(url))
+    setError(null)
+    void webview?.loadURL(url).catch(() => undefined)
+  }
+
+  const jump = (index: number) => {
+    const id = sessionID()
+    if (!id) return
+    const url = jumpBrowserHistory(id, index)
+    if (!url) return
+    setHistoryOpen(false)
+    bumpHistory()
     setCurrent(url)
     setAddress(displayUrl(url))
     setError(null)
@@ -285,7 +317,14 @@ export function SessionBrowserTab() {
     if (url && url !== "about:blank") platform.openExternal(url)
   }
 
-  onCleanup(() => stopPick())
+  const onHistoryKey = (event: KeyboardEvent) => {
+    if (event.key === "Escape") setHistoryOpen(false)
+  }
+  window.addEventListener("keydown", onHistoryKey, true)
+  onCleanup(() => {
+    stopPick()
+    window.removeEventListener("keydown", onHistoryKey, true)
+  })
 
   const attach = (element: HTMLElement) => {
     const view = element as WebviewElement
@@ -327,6 +366,13 @@ export function SessionBrowserTab() {
     }
     view.addEventListener("did-navigate", syncUrl)
     view.addEventListener("did-navigate-in-page", syncUrl)
+    view.addEventListener("page-favicon-updated", (event) => {
+      const favicons = (event as unknown as { favicons?: string[] }).favicons
+      const url = view.getURL() || current()
+      if (!favicons?.length || !url || !key) return
+      rememberBrowserFavicon(key, url, favicons[0])
+      bumpHistory()
+    })
     view.addEventListener("new-window", (event) => {
       event.preventDefault()
       const url = (event as unknown as WebviewEvent).url
@@ -358,6 +404,61 @@ export function SessionBrowserTab() {
         <Tooltip value={language.t("session.browser.reload")} placement="bottom">
           <IconButton icon="reset" variant="ghost" class="h-7 w-7" onClick={reload} />
         </Tooltip>
+        <div class="relative shrink-0">
+          <Tooltip value={language.t("session.browser.history")} placement="bottom">
+            <IconButton
+              icon="archive"
+              variant="ghost"
+              class="h-7 w-7"
+              disabled={entries().entries.length === 0}
+              onClick={() => setHistoryOpen((value) => !value)}
+            />
+          </Tooltip>
+          <Show when={historyOpen()}>
+            <div class="absolute left-0 top-full z-40 mt-1 max-h-80 w-[360px] overflow-auto rounded-md border border-border-weaker-base bg-background-base py-1 shadow-lg">
+              <Show
+                when={entries().entries.length > 0}
+                fallback={
+                  <div class="px-3 py-4 text-12-regular text-text-weak">
+                    {language.t("session.browser.history.empty")}
+                  </div>
+                }
+              >
+                <For each={[...entries().entries].reverse()}>
+                  {(url, index) => {
+                    const at = () => entries().entries.length - 1 - index()
+                    const icon = () => browserFavicon(sessionID(), url)
+                    return (
+                      <button
+                        type="button"
+                        class="flex w-full items-center gap-2 px-2 py-1.5 text-left text-12-regular text-text-base hover:bg-surface-interactive-hover"
+                        classList={{ "bg-surface-interactive-hover": at() === entries().index }}
+                        onClick={() => jump(at())}
+                        title={url}
+                      >
+                        <Show
+                          when={icon()}
+                          fallback={<Icon name="globe" size="small" class="shrink-0 text-text-weak" />}
+                        >
+                          <img
+                            src={icon()}
+                            alt=""
+                            class="size-3.5 shrink-0 rounded-sm"
+                            onError={(event) => (event.currentTarget.style.display = "none")}
+                          />
+                        </Show>
+                        <span class="min-w-0 flex-1 truncate">{displayUrl(url)}</span>
+                        <Show when={at() === entries().index}>
+                          <Icon name="check-small" size="small" class="shrink-0 text-text-weak" />
+                        </Show>
+                      </button>
+                    )
+                  }}
+                </For>
+              </Show>
+            </div>
+          </Show>
+        </div>
         <form
           class="flex min-w-0 flex-1 items-center"
           onSubmit={(event) => {
@@ -365,6 +466,17 @@ export function SessionBrowserTab() {
             navigate(address())
           }}
         >
+          <Show
+            when={favicon()}
+            fallback={<Icon name="globe" size="small" class="ml-1 mr-1.5 shrink-0 text-text-weak" />}
+          >
+            <img
+              src={favicon()}
+              alt=""
+              class="ml-1 mr-1.5 size-3.5 shrink-0 rounded-sm"
+              onError={(event) => (event.currentTarget.style.display = "none")}
+            />
+          </Show>
           <input
             type="text"
             spellcheck={false}
@@ -373,6 +485,7 @@ export function SessionBrowserTab() {
             placeholder={language.t("session.browser.placeholder")}
             value={address()}
             onInput={(event) => setAddress(event.currentTarget.value)}
+            onFocus={() => setHistoryOpen(false)}
           />
         </form>
         <Show when={rewritten() && remoteHost()}>
